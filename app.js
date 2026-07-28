@@ -6,11 +6,18 @@
   const state = { token: localStorage.getItem(SESSION_KEY) || "", items: [], entries: [], ledger: [], deferredPrompt: null };
   const BASIC_ITEMS = [
     "Aata", "Chawal", "Cheeni", "Daal Chana", "Daal Masoor", "Daal Moong",
-    "Daal Mash", "Besan", "Suji", "Maida", "Namak", "Laal Mirch", "Haldi",
-    "Dhania Powder", "Garam Masala", "Cooking Oil", "Ghee", "Chai Patti",
-    "Doodh", "Dahi", "Anday", "Bread", "Biscuit", "Soap", "Shampoo",
-    "Toothpaste", "Washing Powder", "Dishwash", "Tissue Paper", "Match Box",
-    "Piyaz", "Aloo", "Tamatar", "Lehsan", "Adrak"
+    "Daal Mash", "Daal Arhar", "Besan", "Suji", "Maida", "Namak",
+    "Laal Mirch", "Kali Mirch", "Haldi", "Dhania Powder", "Zeera",
+    "Garam Masala", "Biryani Masala", "Qorma Masala", "Chaat Masala",
+    "Cooking Oil", "Ghee", "Chai Patti", "Doodh", "Dahi", "Anday",
+    "Bread", "Biscuit", "Rusk", "Noodles", "Jam", "Ketchup", "Achar",
+    "Cold Drink", "Juice", "Mineral Water", "Rooh Afza", "Lays", "Nimko",
+    "Soap", "Shampoo", "Toothpaste", "Toothbrush", "Washing Powder",
+    "Dishwash", "Floor Cleaner", "Toilet Cleaner", "Bleach", "Phenyl",
+    "Tissue Paper", "Toilet Roll", "Garbage Bags", "Match Box",
+    "Mosquito Coil", "Neel", "Pyaaz", "Aloo", "Tamatar", "Lehsan",
+    "Adrak", "Hari Mirch", "Lemon", "Sabzi", "Chicken", "Beef",
+    "Mutton", "Fish"
   ];
   const $ = (id) => document.getElementById(id);
   const configured = /^https:\/\//.test(config.supabaseUrl || "") && !String(config.supabaseAnonKey || "").startsWith("YOUR_");
@@ -102,7 +109,11 @@
 
   async function loadItems() {
     state.items = await api("store_items?select=*&order=name.asc") || [];
-    const options = [...new Set([...BASIC_ITEMS, ...state.items.map((item) => item.name)])]
+    const options = [...new Set(
+      [...BASIC_ITEMS, ...state.items.map((item) => item.name)]
+        .map(normalizedItemName)
+        .filter(Boolean)
+    )]
       .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
     $("itemOptions").innerHTML = options.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
   }
@@ -154,20 +165,28 @@
 
   function normalizedItemName(value) {
     const original = String(value || "").trim();
-    const key = original.toLowerCase().replace(/\s+/g, " ");
+    const key = original.toLowerCase().replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
     const aliases = [
       [/^(1 kilo ghee|adha kilo desi ghee|ghee(?: \d+ kilo)?)$/, "Ghee"],
       [/^(patti|chai patti|patti \d+ kilo)$/, "Chai Patti"],
-      [/^(chawal|chawal \d+ kilo)$/, "Chawal"],
-      [/^(bottle|bottle sprite|bottle dew|bottle juice wali)$/, "Cold Drink"],
+      [/^chawal(?: \d+ kilo)?$/, "Chawal"],
+      [/^(bottle|bottle \d+ lit(?:er|re)|bottle sprite|bottle dew|bottle juice wali)$/, "Cold Drink"],
       [/^(saban|soap)$/, "Soap"],
+      [/^(saban bartan wala|dishwash)$/, "Dishwash"],
       [/^(surf|surf packet|washing powder)$/, "Washing Powder"],
       [/^(aalo|aloo)$/, "Aloo"],
-      [/^(pyaaz|piyaz)$/, "Pyaaz"],
-      [/^(cheeni|sugar)$/, "Cheeni"],
-      [/^(anda|anda \d+|anday)$/, "Anday"],
-      [/^(tel|oil)$/, "Oil"],
-      [/^(sabzi|sabzi \d+ kilo)$/, "Sabzi"]
+      [/^(payaaz|pyaaz|piyaz)$/, "Pyaaz"],
+      [/^(tamater|tamatar)$/, "Tamatar"],
+      [/^(nembo|lemon)$/, "Lemon"],
+      [/^(nemko|nimko)$/, "Nimko"],
+      [/^(basin|besan|basin adh kilo)$/, "Besan"],
+      [/^(cheeni|sugar)(?: \d+ kilo)?$/, "Cheeni"],
+      [/^(anda|anda \d+|anday(?: \d+)?)$/, "Anday"],
+      [/^(tel|oil|cooking oil)$/, "Cooking Oil"],
+      [/^sabzi(?: \d+ kilo)?$/, "Sabzi"],
+      [/^(dahi|adha kilo dahi)$/, "Dahi"],
+      [/^(chana masala|chaina masala)$/, "Chana Masala"],
+      [/^(sawinya|seviyan)$/, "Seviyan"]
     ];
     const match = aliases.find(([pattern]) => pattern.test(key));
     return match ? match[1] : original;
@@ -268,16 +287,17 @@
   }
 
   async function ensureItem(name) {
-    const existing = state.items.find((item) => item.name.toLowerCase() === name.toLowerCase());
+    const canonicalName = normalizedItemName(name);
+    const existing = state.items.find((item) => normalizedItemName(item.name).toLowerCase() === canonicalName.toLowerCase());
     if (existing) return existing;
-    const result = await api("store_items", { method: "POST", body: JSON.stringify({ name }), headers: { Prefer: "return=representation,resolution=merge-duplicates" } });
+    const result = await api("store_items", { method: "POST", body: JSON.stringify({ name: canonicalName }), headers: { Prefer: "return=representation,resolution=merge-duplicates" } });
     await loadItems();
-    return result?.[0] || state.items.find((item) => item.name.toLowerCase() === name.toLowerCase());
+    return result?.[0] || state.items.find((item) => item.name.toLowerCase() === canonicalName.toLowerCase());
   }
 
   async function saveEntry(event) {
     event.preventDefault();
-    const name = $("itemName").value.trim();
+    const name = normalizedItemName($("itemName").value);
     const total = Number($("totalAmount").value || 0);
     const paid = Number($("paidAmount").value || 0);
     if (!name) return toast("Item name required");
@@ -479,13 +499,13 @@
   function init() {
     bindEvents();
     clearEntry();
-    $("filterFrom").value = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    $("filterFrom").value = "";
     $("filterTo").value = today();
     $("analyticsFrom").value = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     $("analyticsTo").value = today();
     $("ledgerDate").value = today();
     updateInstallButtons();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=5").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=6").catch(console.error);
     restoreSession();
   }
 

@@ -24,6 +24,8 @@ The first login uses the password configured in `supabase_setup.sql`. A secure r
 ## Data and exports
 
 - A new item name is automatically added to the searchable item dropdown.
+- The dropdown merges quantity and spelling variants into one household name, for example `Chawal 2 kilo` becomes `Chawal`.
+- History opens with the complete date range by default. Add From/To dates only when a limited report is required.
 - `old_register_verified_import.sql` replaces only the previously imported handwritten-register rows and keeps daily app records unchanged.
 - After the corrected import, Supabase should report **164 rows**, **Rs 25,189**, and **0 zero-amount rows**.
 - The corrected workbook is the final source. Do not run the older v4 import because its names and total were not final.
