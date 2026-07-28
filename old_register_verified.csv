@@ -1,0 +1,165 @@
+﻿id,purchase_date,item_name,total_amount,name_status,source_ref,note
+1,2026-05-27,1 kilo ghee,490.0,wazeh,XLS-ITEM-001,Corrected workbook ID 1; name status: wazeh
+2,2026-05-27,Basin adh kilo,80.0,ghair wazeh,XLS-ITEM-002,Corrected workbook ID 2; name status: ghair wazeh
+3,2026-05-27,Bottle 2 litter,320.0,wazeh,XLS-ITEM-003,Corrected workbook ID 3; name status: wazeh
+4,2026-05-27,Cheeni 2 kilo,320.0,wazeh,XLS-ITEM-004,Corrected workbook ID 4; name status: wazeh
+5,2026-05-27,Saban,120.0,wazeh,XLS-ITEM-005,Corrected workbook ID 5; name status: wazeh
+6,2026-05-27,saban bartan wala,50.0,wazeh,XLS-ITEM-006,Corrected workbook ID 6; name status: wazeh
+7,2026-05-27,Neel,40.0,wazeh,XLS-ITEM-007,Corrected workbook ID 7; name status: wazeh
+8,2026-05-27,Sabzi masala,50.0,wazeh,XLS-ITEM-008,Corrected workbook ID 8; name status: wazeh
+9,2026-05-27,Pyaaz,120.0,wazeh,XLS-ITEM-009,Corrected workbook ID 9; name status: wazeh
+10,2026-05-27,Patti,250.0,wazeh,XLS-ITEM-010,Corrected workbook ID 10; name status: wazeh
+11,2026-05-27,Chawal aur masala,570.0,ghair wazeh,XLS-ITEM-011,Corrected workbook ID 11; name status: ghair wazeh
+12,2026-05-27,Qorma masala,80.0,ghair wazeh,XLS-ITEM-012,Corrected workbook ID 12; name status: ghair wazeh
+13,2026-05-27,Achar gosht,100.0,wazeh,XLS-ITEM-013,Corrected workbook ID 13; name status: wazeh
+14,2026-05-27,Bottle,160.0,wazeh,XLS-ITEM-014,Corrected workbook ID 14; name status: wazeh
+15,2026-05-27,Lays,90.0,na-samajh,XLS-ITEM-015,Corrected workbook ID 15; name status: na-samajh
+16,2026-05-27,Karela,100.0,wazeh,XLS-ITEM-016,Corrected workbook ID 16; name status: wazeh
+17,2026-05-30,"Dahi aur phaliya, masala",350.0,ghair wazeh,XLS-ITEM-017,Corrected workbook ID 17; name status: ghair wazeh
+18,2026-05-30,Bottle aur Lays,130.0,ghair wazeh,XLS-ITEM-018,Corrected workbook ID 18; name status: ghair wazeh
+19,2026-05-30,Aalo,50.0,wazeh,XLS-ITEM-019,Corrected workbook ID 19; name status: wazeh
+20,2026-05-30,Adrak aur biryani masala,90.0,ghair wazeh,XLS-ITEM-020,Corrected workbook ID 20; name status: ghair wazeh
+21,2026-05-30,Tezab,100.0,wazeh,XLS-ITEM-021,Corrected workbook ID 21; name status: wazeh
+22,2026-05-30,"rang,gheri,sogi",140.0,ghair wazeh,XLS-ITEM-022,Corrected workbook ID 22; name status: ghair wazeh
+23,2026-06-03,Saban,100.0,wazeh,XLS-ITEM-023,Corrected workbook ID 23; name status: wazeh
+24,2026-06-03,Saban,50.0,wazeh,XLS-ITEM-024,Corrected workbook ID 24; name status: wazeh
+25,2026-06-03,Saban,60.0,wazeh,XLS-ITEM-025,Corrected workbook ID 25; name status: wazeh
+26,2026-06-03,Bottle,160.0,wazeh,XLS-ITEM-026,Corrected workbook ID 26; name status: wazeh
+27,2026-06-03,Surf,120.0,wazeh,XLS-ITEM-027,Corrected workbook ID 27; name status: wazeh
+28,2026-06-03,Chawal,100.0,wazeh,XLS-ITEM-028,Corrected workbook ID 28; name status: wazeh
+29,2026-06-03,Chawal,200.0,wazeh,XLS-ITEM-029,Corrected workbook ID 29; name status: wazeh
+30,2026-06-03,Adha kilo dahi,110.0,ghair wazeh,XLS-ITEM-030,Corrected workbook ID 30; name status: ghair wazeh
+31,2026-06-03,Chawal,200.0,wazeh,XLS-ITEM-031,Corrected workbook ID 31; name status: wazeh
+32,2026-06-03,Aalo,50.0,wazeh,XLS-ITEM-032,Corrected workbook ID 32; name status: wazeh
+33,2026-06-03,Masala,50.0,wazeh,XLS-ITEM-033,Corrected workbook ID 33; name status: wazeh
+34,2026-06-03,Bottle juice wali,150.0,wazeh,XLS-ITEM-034,Corrected workbook ID 34; name status: wazeh
+35,2026-06-03,Sabzi,40.0,wazeh,XLS-ITEM-035,Corrected workbook ID 35; name status: wazeh
+36,2026-06-03,Sabzi,120.0,wazeh,XLS-ITEM-036,Corrected workbook ID 36; name status: wazeh
+37,2026-06-03,Patti,100.0,wazeh,XLS-ITEM-037,Corrected workbook ID 37; name status: wazeh
+38,2026-06-03,Haldi,50.0,ghair wazeh,XLS-ITEM-038,Corrected workbook ID 38; name status: ghair wazeh
+39,2026-06-03,Cheeni,150.0,wazeh,XLS-ITEM-039,Corrected workbook ID 39; name status: wazeh
+40,2026-06-03,Anda,40.0,wazeh,XLS-ITEM-040,Corrected workbook ID 40; name status: wazeh
+41,2026-06-03,Masala,150.0,wazeh,XLS-ITEM-041,Corrected workbook ID 41; name status: wazeh
+42,2026-06-03,Cheez,150.0,ghair wazeh,XLS-ITEM-042,Corrected workbook ID 42; name status: ghair wazeh
+43,2026-06-13,Dahi aur sabzi,100.0,ghair wazeh,XLS-ITEM-043,Corrected workbook ID 43; name status: ghair wazeh
+44,2026-06-13,Bottle Sprite,150.0,wazeh,XLS-ITEM-044,Corrected workbook ID 44; name status: wazeh
+45,2026-06-13,Chawal,300.0,wazeh,XLS-ITEM-045,Corrected workbook ID 45; name status: wazeh
+46,2026-06-13,Sabzi,100.0,wazeh,XLS-ITEM-046,Corrected workbook ID 46; name status: wazeh
+47,2026-06-13,Sabzi,50.0,wazeh,XLS-ITEM-047,Corrected workbook ID 47; name status: wazeh
+48,2026-06-13,Cheez,150.0,wazeh,XLS-ITEM-048,Corrected workbook ID 48; name status: wazeh
+49,2026-06-13,Saban,130.0,wazeh,XLS-ITEM-049,Corrected workbook ID 49; name status: wazeh
+50,2026-06-13,Surf,50.0,wazeh,XLS-ITEM-050,Corrected workbook ID 50; name status: wazeh
+51,2026-06-13,Sawinya,50.0,ghair wazeh,XLS-ITEM-051,Corrected workbook ID 51; name status: ghair wazeh
+52,2026-06-13,Cheeni,300.0,wazeh,XLS-ITEM-052,Corrected workbook ID 52; name status: wazeh
+53,2026-06-13,Ghee,500.0,wazeh,XLS-ITEM-053,Corrected workbook ID 53; name status: wazeh
+54,2026-06-13,Pyaaz,180.0,wazeh,XLS-ITEM-054,Corrected workbook ID 54; name status: wazeh
+55,2026-06-13,Masala,100.0,wazeh,XLS-ITEM-055,Corrected workbook ID 55; name status: wazeh
+56,2026-06-16,Doodh,200.0,wazeh,XLS-ITEM-056,Corrected workbook ID 56; name status: wazeh
+57,2026-06-16,Ghee,500.0,wazeh,XLS-ITEM-057,Corrected workbook ID 57; name status: wazeh
+58,2026-06-16,Bottle Sprite,150.0,wazeh,XLS-ITEM-058,Corrected workbook ID 58; name status: wazeh
+59,2026-06-16,Lays,100.0,wazeh,XLS-ITEM-059,Corrected workbook ID 59; name status: wazeh
+60,2026-06-16,Saban,110.0,wazeh,XLS-ITEM-060,Corrected workbook ID 60; name status: wazeh
+61,2026-06-16,Kochi,50.0,na-samajh,XLS-ITEM-061,Corrected workbook ID 61; name status: na-samajh
+62,2026-06-16,Sabzi,100.0,wazeh,XLS-ITEM-062,Corrected workbook ID 62; name status: wazeh
+63,2026-06-16,Sabzi,130.0,wazeh,XLS-ITEM-063,Corrected workbook ID 63; name status: wazeh
+64,2026-06-16,Sabzi,100.0,wazeh,XLS-ITEM-064,Corrected workbook ID 64; name status: wazeh
+65,2026-06-16,Tel,100.0,wazeh,XLS-ITEM-065,Corrected workbook ID 65; name status: wazeh
+66,2026-06-16,Surf,120.0,wazeh,XLS-ITEM-066,Corrected workbook ID 66; name status: wazeh
+67,2026-06-16,Cheez,100.0,wazeh,XLS-ITEM-067,Corrected workbook ID 67; name status: wazeh
+68,2026-06-16,Chawal,200.0,wazeh,XLS-ITEM-068,Corrected workbook ID 68; name status: wazeh
+69,2026-06-16,Daal,50.0,wazeh,XLS-ITEM-069,Corrected workbook ID 69; name status: wazeh
+70,2026-06-24,Bottle Sprite,150.0,wazeh,XLS-ITEM-070,Corrected workbook ID 70; name status: wazeh
+71,2026-06-24,Bottle Sprite,150.0,wazeh,XLS-ITEM-071,Corrected workbook ID 71; name status: wazeh
+72,2026-06-24,Lays,50.0,wazeh,XLS-ITEM-072,Corrected workbook ID 72; name status: wazeh
+73,2026-06-24,Shampoo,20.0,wazeh,XLS-ITEM-073,Corrected workbook ID 73; name status: wazeh
+74,2026-06-24,Saban,100.0,wazeh,XLS-ITEM-074,Corrected workbook ID 74; name status: wazeh
+75,2026-06-24,Bottle,150.0,ghair wazeh,XLS-ITEM-075,Corrected workbook ID 75; name status: ghair wazeh
+76,2026-06-24,Cheez,150.0,wazeh,XLS-ITEM-076,Corrected workbook ID 76; name status: wazeh
+77,2026-06-24,Sabzi,50.0,wazeh,XLS-ITEM-077,Corrected workbook ID 77; name status: wazeh
+78,2026-06-24,Chawal,300.0,wazeh,XLS-ITEM-078,Corrected workbook ID 78; name status: wazeh
+79,2026-06-24,Chawal,300.0,wazeh,XLS-ITEM-079,Corrected workbook ID 79; name status: wazeh
+80,2026-06-24,Chawal,200.0,wazeh,XLS-ITEM-080,Corrected workbook ID 80; name status: wazeh
+81,2026-06-24,Ghee 3 kilo,1500.0,wazeh,XLS-ITEM-081,Corrected workbook ID 81; name status: wazeh
+82,2026-06-24,Cheeni,300.0,wazeh,XLS-ITEM-082,Corrected workbook ID 82; name status: wazeh
+83,2026-06-24,Patti,200.0,wazeh,XLS-ITEM-083,Corrected workbook ID 83; name status: wazeh
+84,2026-06-24,Mirch,100.0,wazeh,XLS-ITEM-084,Corrected workbook ID 84; name status: wazeh
+85,2026-06-24,Haldi,50.0,ghair wazeh,XLS-ITEM-085,Corrected workbook ID 85; name status: ghair wazeh
+86,2026-06-24,Surf,120.0,wazeh,XLS-ITEM-086,Corrected workbook ID 86; name status: wazeh
+87,2026-06-24,Saban,50.0,wazeh,XLS-ITEM-087,Corrected workbook ID 87; name status: wazeh
+88,2026-06-24,Sabzi,130.0,wazeh,XLS-ITEM-088,Corrected workbook ID 88; name status: wazeh
+89,2026-06-24,Sabzi,100.0,wazeh,XLS-ITEM-089,Corrected workbook ID 89; name status: wazeh
+90,2026-06-24,Sabzi 2 kilo,100.0,wazeh,XLS-ITEM-090,Corrected workbook ID 90; name status: wazeh
+91,2026-06-24,Anda 5,200.0,ghair wazeh,XLS-ITEM-091,Corrected workbook ID 91; name status: ghair wazeh
+92,2026-06-24,Daal chana packet,100.0,wazeh,XLS-ITEM-092,Corrected workbook ID 92; name status: wazeh
+93,2026-06-24,Masala,100.0,wazeh,XLS-ITEM-093,Corrected workbook ID 93; name status: wazeh
+94,2026-07-01,Chawal,200.0,wazeh,XLS-ITEM-094,Corrected workbook ID 94; name status: wazeh
+95,2026-07-01,Cheeni 2 kilo,300.0,ghair wazeh,XLS-ITEM-095,Corrected workbook ID 95; name status: ghair wazeh
+96,2026-07-01,Chaina masala,30.0,wazeh,XLS-ITEM-096,Corrected workbook ID 96; name status: wazeh
+97,2026-07-01,Sabzi,150.0,wazeh,XLS-ITEM-097,Corrected workbook ID 97; name status: wazeh
+98,2026-07-01,Tezab,100.0,wazeh,XLS-ITEM-098,Corrected workbook ID 98; name status: wazeh
+99,2026-07-01,Ghee 1 kilo,480.0,wazeh,XLS-ITEM-099,Corrected workbook ID 99; name status: wazeh
+100,2026-07-01,sabzi,150.0,na-samajh,XLS-ITEM-100,Corrected workbook ID 100; name status: na-samajh
+101,2026-07-01,Cheez,100.0,wazeh,XLS-ITEM-101,Corrected workbook ID 101; name status: wazeh
+102,2026-07-01,Haldi,50.0,wazeh,XLS-ITEM-102,Corrected workbook ID 102; name status: wazeh
+103,2026-07-01,Aalo aur mirch,90.0,wazeh,XLS-ITEM-103,Corrected workbook ID 103; name status: wazeh
+104,2026-07-01,Surf,100.0,wazeh,XLS-ITEM-104,Corrected workbook ID 104; name status: wazeh
+105,2026-07-01,Shampoo,50.0,wazeh,XLS-ITEM-105,Corrected workbook ID 105; name status: wazeh
+106,2026-07-01,Patti,100.0,wazeh,XLS-ITEM-106,Corrected workbook ID 106; name status: wazeh
+107,2026-07-01,Patti,100.0,wazeh,XLS-ITEM-107,Corrected workbook ID 107; name status: wazeh
+108,2026-07-01,Tamatar,30.0,na-samajh,XLS-ITEM-108,Corrected workbook ID 108; name status: na-samajh
+109,2026-07-01,Jadho,250.0,ghair wazeh,XLS-ITEM-109,Corrected workbook ID 109; name status: ghair wazeh
+110,2026-07-08,Chawal 1 kilo,260.0,wazeh,XLS-ITEM-110,Corrected workbook ID 110; name status: wazeh
+111,2026-07-08,Chawal 2 kilo,480.0,wazeh,XLS-ITEM-111,Corrected workbook ID 111; name status: wazeh
+112,2026-07-08,Pyaaz,200.0,wazeh,XLS-ITEM-112,Corrected workbook ID 112; name status: wazeh
+113,2026-07-08,Anday 10,200.0,ghair wazeh,XLS-ITEM-113,Corrected workbook ID 113; name status: ghair wazeh
+114,2026-07-08,Beghan,70.0,wazeh,XLS-ITEM-114,Corrected workbook ID 114; name status: wazeh
+115,2026-07-08,Aalo,90.0,wazeh,XLS-ITEM-115,Corrected workbook ID 115; name status: wazeh
+116,2026-07-08,Bottle,160.0,wazeh,XLS-ITEM-116,Corrected workbook ID 116; name status: wazeh
+117,2026-07-08,Nembo,50.0,wazeh,XLS-ITEM-117,Corrected workbook ID 117; name status: wazeh
+118,2026-07-08,Tel,70.0,wazeh,XLS-ITEM-118,Corrected workbook ID 118; name status: wazeh
+119,2026-07-08,Sabzi,130.0,ghair wazeh,XLS-ITEM-119,Corrected workbook ID 119; name status: ghair wazeh
+120,2026-07-08,Nemko,50.0,wazeh,XLS-ITEM-120,Corrected workbook ID 120; name status: wazeh
+121,2026-07-08,Saban,50.0,wazeh,XLS-ITEM-121,Corrected workbook ID 121; name status: wazeh
+122,2026-07-08,Basin aur dahi,130.0,ghair wazeh,XLS-ITEM-122,Corrected workbook ID 122; name status: ghair wazeh
+123,2026-07-08,Surf aur bottle,350.0,ghair wazeh,XLS-ITEM-123,Corrected workbook ID 123; name status: ghair wazeh
+124,2026-07-08,Rooh Afza,140.0,ghair wazeh,XLS-ITEM-124,Corrected workbook ID 124; name status: ghair wazeh
+125,2026-07-14,Chawal,300.0,wazeh,XLS-ITEM-125,Corrected workbook ID 125; name status: wazeh
+126,2026-07-14,Chaat masala,50.0,wazeh,XLS-ITEM-126,Corrected workbook ID 126; name status: wazeh
+127,2026-07-14,Chawal,240.0,wazeh,XLS-ITEM-127,Corrected workbook ID 127; name status: wazeh
+128,2026-07-14,Pyaaz masala,130.0,ghair wazeh,XLS-ITEM-128,Corrected workbook ID 128; name status: ghair wazeh
+129,2026-07-14,Tamater,50.0,na-samajh,XLS-ITEM-129,Corrected workbook ID 129; name status: na-samajh
+130,2026-07-14,Basin,100.0,wazeh,XLS-ITEM-130,Corrected workbook ID 130; name status: wazeh
+131,2026-07-14,Dahi,100.0,wazeh,XLS-ITEM-131,Corrected workbook ID 131; name status: wazeh
+132,2026-07-14,Pyaaz,100.0,wazeh,XLS-ITEM-132,Corrected workbook ID 132; name status: wazeh
+133,2026-07-14,Bottle,160.0,wazeh,XLS-ITEM-133,Corrected workbook ID 133; name status: wazeh
+134,2026-07-14,Doodh,160.0,wazeh,XLS-ITEM-134,Corrected workbook ID 134; name status: wazeh
+135,2026-07-14,Cheeni,300.0,wazeh,XLS-ITEM-135,Corrected workbook ID 135; name status: wazeh
+136,2026-07-14,Noodles,60.0,wazeh,XLS-ITEM-136,Corrected workbook ID 136; name status: wazeh
+137,2026-07-19,Bottle,130.0,wazeh,XLS-ITEM-137,Corrected workbook ID 137; name status: wazeh
+138,2026-07-19,Bottle,130.0,wazeh,XLS-ITEM-138,Corrected workbook ID 138; name status: wazeh
+139,2026-07-19,Nemko,50.0,wazeh,XLS-ITEM-139,Corrected workbook ID 139; name status: wazeh
+140,2026-07-19,Ghee,500.0,wazeh,XLS-ITEM-140,Corrected workbook ID 140; name status: wazeh
+141,2026-07-19,Payaaz,100.0,ghair wazeh,XLS-ITEM-141,Corrected workbook ID 141; name status: ghair wazeh
+142,2026-07-19,Tel,50.0,wazeh,XLS-ITEM-142,Corrected workbook ID 142; name status: wazeh
+143,2026-07-19,Saban,50.0,wazeh,XLS-ITEM-143,Corrected workbook ID 143; name status: wazeh
+144,2026-07-19,Chawal,50.0,wazeh,XLS-ITEM-144,Corrected workbook ID 144; name status: wazeh
+145,2026-07-19,Patti,100.0,wazeh,XLS-ITEM-145,Corrected workbook ID 145; name status: wazeh
+146,2026-07-19,Surf,179.0,wazeh,XLS-ITEM-146,Corrected workbook ID 146; name status: wazeh
+147,2026-07-19,Cheez,100.0,wazeh,XLS-ITEM-147,Corrected workbook ID 147; name status: wazeh
+148,2026-07-19,Sabzi,160.0,wazeh,XLS-ITEM-148,Corrected workbook ID 148; name status: wazeh
+149,2026-07-19,Chawal,240.0,wazeh,XLS-ITEM-149,Corrected workbook ID 149; name status: wazeh
+150,2026-07-19,Masala,50.0,wazeh,XLS-ITEM-150,Corrected workbook ID 150; name status: wazeh
+151,2026-07-19,Nembo,50.0,wazeh,XLS-ITEM-151,Corrected workbook ID 151; name status: wazeh
+152,2026-07-19,Aalo,140.0,wazeh,XLS-ITEM-152,Corrected workbook ID 152; name status: wazeh
+153,2026-07-19,Anda 3,60.0,wazeh,XLS-ITEM-153,Corrected workbook ID 153; name status: wazeh
+154,2026-07-19,Bottle,130.0,wazeh,XLS-ITEM-154,Corrected workbook ID 154; name status: wazeh
+155,2026-07-24,Chawal,200.0,wazeh,XLS-ITEM-155,Corrected workbook ID 155; name status: wazeh
+156,2026-07-24,Chany,50.0,wazeh,XLS-ITEM-156,Corrected workbook ID 156; name status: wazeh
+157,2026-07-24,Ghobi aur aalo,150.0,ghair wazeh,XLS-ITEM-157,Corrected workbook ID 157; name status: ghair wazeh
+158,2026-07-24,Pyaaz,100.0,wazeh,XLS-ITEM-158,Corrected workbook ID 158; name status: wazeh
+159,2026-07-24,Ghee 1 kilo,500.0,ghair wazeh,XLS-ITEM-159,Corrected workbook ID 159; name status: ghair wazeh
+160,2026-07-24,Banghen,120.0,ghair wazeh,XLS-ITEM-160,Corrected workbook ID 160; name status: ghair wazeh
+161,2026-07-24,Tangri,130.0,wazeh,XLS-ITEM-161,Corrected workbook ID 161; name status: wazeh
+162,2026-07-24,Chaina masala,70.0,ghair wazeh,XLS-ITEM-162,Corrected workbook ID 162; name status: ghair wazeh
+163,2026-07-24,Nemko,50.0,wazeh,XLS-ITEM-163,Corrected workbook ID 163; name status: wazeh
+164,2026-07-24,Cheeni,300.0,wazeh,XLS-ITEM-164,Corrected workbook ID 164; name status: wazeh

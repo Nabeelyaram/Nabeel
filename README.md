@@ -24,6 +24,11 @@ The first login uses the password configured in `supabase_setup.sql`. A secure r
 ## Data and exports
 
 - A new item name is automatically added to the searchable item dropdown.
+- `old_register_verified_import.sql` replaces only the previously imported handwritten-register rows and keeps daily app records unchanged.
+- After the corrected import, Supabase should report **164 rows**, **Rs 25,189**, and **0 zero-amount rows**.
+- The corrected workbook is the final source. Do not run the older v4 import because its names and total were not final.
+- Dashboard Khata shows the verified-list sum, later app purchases, their combined sum, previous balance, payments and final remaining amount separately.
+- Analytics combines common spelling/quantity variants such as `Ghee 1 kilo` with `Ghee`, `Patti` with `Chai Patti`, and `Chawal 2 kilo` with `Chawal`.
 - CSV downloads the currently filtered history.
 - Print / PDF opens the browser print screen. On mobile or desktop choose **Save as PDF** for a PDF file.
 - The app shell works offline, but saving/loading database records requires internet.

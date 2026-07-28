@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#176b45">
   <meta name="description" content="Daily grocery purchase and payment register">
   <title>Maqsood Karyana Store</title>
-  <link rel="manifest" href="manifest.webmanifest?v=3">
-  <link rel="icon" href="app-icon-192.png?v=3">
-  <link rel="apple-touch-icon" href="app-icon-192.png?v=3">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="manifest" href="manifest.webmanifest?v=5">
+  <link rel="icon" href="app-icon-192.png?v=5">
+  <link rel="apple-touch-icon" href="app-icon-192.png?v=5">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -99,8 +99,10 @@
           </div>
           <div class="ledger-stats">
             <div><span>Pichla balance</span><strong id="openingBalance">Rs 0</strong></div>
-            <div><span>Purani lists ka saman</span><strong id="oldRegisterTotal">Rs 0</strong></div>
-            <div><span>App mein naya saman</span><strong id="newPurchasesTotal">Rs 0</strong></div>
+            <div><span>1. Is verified list ka sum</span><strong id="oldRegisterTotal">Rs 0</strong></div>
+            <div><span>2. Is ke baad add saman</span><strong id="newPurchasesTotal">Rs 0</strong></div>
+            <div><span>3. Dono lists ka sum</span><strong id="combinedPurchasesTotal">Rs 0</strong></div>
+            <div><span>4. Pichla balance + dono sums</span><strong id="grossAccountTotal">Rs 0</strong></div>
             <div><span>Items ke sath paid</span><strong id="entryPaidTotal">Rs 0</strong></div>
             <div><span>Alag jama karwaye</span><strong id="depositTotal">Rs 0</strong></div>
             <div class="balance-total"><span>Ab kul baqaya</span><strong id="accountRemaining">Rs 0</strong></div>
@@ -187,7 +189,7 @@
     </nav>
   </div>
 
-  <script src="config.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

@@ -143,13 +143,34 @@
   function grouped(rows) {
     const map = new Map();
     rows.forEach((row) => {
-      const key = String(row.item_name || "").trim();
+      const key = normalizedItemName(row.item_name);
       const item = map.get(key) || { name: key, count: 0, spend: 0 };
       item.count += 1;
       item.spend += Number(row.total_amount || 0);
       map.set(key, item);
     });
     return [...map.values()];
+  }
+
+  function normalizedItemName(value) {
+    const original = String(value || "").trim();
+    const key = original.toLowerCase().replace(/\s+/g, " ");
+    const aliases = [
+      [/^(1 kilo ghee|adha kilo desi ghee|ghee(?: \d+ kilo)?)$/, "Ghee"],
+      [/^(patti|chai patti|patti \d+ kilo)$/, "Chai Patti"],
+      [/^(chawal|chawal \d+ kilo)$/, "Chawal"],
+      [/^(bottle|bottle sprite|bottle dew|bottle juice wali)$/, "Cold Drink"],
+      [/^(saban|soap)$/, "Soap"],
+      [/^(surf|surf packet|washing powder)$/, "Washing Powder"],
+      [/^(aalo|aloo)$/, "Aloo"],
+      [/^(pyaaz|piyaz)$/, "Pyaaz"],
+      [/^(cheeni|sugar)$/, "Cheeni"],
+      [/^(anda|anda \d+|anday)$/, "Anday"],
+      [/^(tel|oil)$/, "Oil"],
+      [/^(sabzi|sabzi \d+ kilo)$/, "Sabzi"]
+    ];
+    const match = aliases.find(([pattern]) => pattern.test(key));
+    return match ? match[1] : original;
   }
 
   function renderDashboard() {
@@ -186,13 +207,20 @@
     const ledger = ledgerTotals();
     const oldRows = state.entries.filter((row) => row.source_group === "old_register");
     const newRows = state.entries.filter((row) => row.source_group !== "old_register");
+    const oldTotal = totals(oldRows).total;
+    const newTotal = totals(newRows).total;
+    const purchasesTotal = oldTotal + newTotal;
+    const openingTotal = ledger.opening + ledger.adjustments;
     const remaining = ledger.opening + ledger.adjustments + allTotals.total - allTotals.paid - ledger.payments;
-    $("openingBalance").textContent = money(ledger.opening + ledger.adjustments);
-    $("oldRegisterTotal").textContent = money(totals(oldRows).total);
-    $("newPurchasesTotal").textContent = money(totals(newRows).total);
+    $("openingBalance").textContent = money(openingTotal);
+    $("oldRegisterTotal").textContent = money(oldTotal);
+    $("newPurchasesTotal").textContent = money(newTotal);
+    $("combinedPurchasesTotal").textContent = money(purchasesTotal);
+    $("grossAccountTotal").textContent = money(openingTotal + purchasesTotal);
     $("entryPaidTotal").textContent = money(allTotals.paid);
     $("depositTotal").textContent = money(ledger.payments);
     $("accountRemaining").textContent = money(remaining);
+    $("allRemaining").textContent = money(remaining);
     $("ledgerHistory").innerHTML = state.ledger.length ? state.ledger.slice(0, 8).map((row) => `
       <div class="record-row">
         <div><strong>${row.entry_type === "payment" ? "Jama payment" : row.entry_type === "opening_balance" ? "Pichla balance" : "Adjustment"}</strong><span>${escapeHtml(row.entry_date)} · ${escapeHtml(row.note || "-")}</span></div>
@@ -204,6 +232,9 @@
   async function saveLedger(event) {
     event.preventDefault();
     try {
+      if ($("ledgerType").value === "opening_balance") {
+        await api("store_ledger?entry_type=eq.opening_balance", { method: "DELETE", prefer: "return=minimal" });
+      }
       await api("store_ledger", { method: "POST", body: JSON.stringify({
         entry_date: $("ledgerDate").value,
         entry_type: $("ledgerType").value,
@@ -454,7 +485,7 @@
     $("analyticsTo").value = today();
     $("ledgerDate").value = today();
     updateInstallButtons();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=2").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=5").catch(console.error);
     restoreSession();
   }
 
