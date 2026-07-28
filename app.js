@@ -4,6 +4,14 @@
   const config = window.MAQSOOD_CONFIG || {};
   const SESSION_KEY = "maqsood-karyana-session";
   const state = { token: localStorage.getItem(SESSION_KEY) || "", items: [], entries: [], deferredPrompt: null };
+  const BASIC_ITEMS = [
+    "Aata", "Chawal", "Cheeni", "Daal Chana", "Daal Masoor", "Daal Moong",
+    "Daal Mash", "Besan", "Suji", "Maida", "Namak", "Laal Mirch", "Haldi",
+    "Dhania Powder", "Garam Masala", "Cooking Oil", "Ghee", "Chai Patti",
+    "Doodh", "Dahi", "Anday", "Bread", "Biscuit", "Soap", "Shampoo",
+    "Toothpaste", "Washing Powder", "Dishwash", "Tissue Paper", "Match Box",
+    "Piyaz", "Aloo", "Tamatar", "Lehsan", "Adrak"
+  ];
   const $ = (id) => document.getElementById(id);
   const configured = /^https:\/\//.test(config.supabaseUrl || "") && !String(config.supabaseAnonKey || "").startsWith("YOUR_");
   const money = (value) => `Rs ${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
@@ -94,7 +102,9 @@
 
   async function loadItems() {
     state.items = await api("store_items?select=*&order=name.asc") || [];
-    $("itemOptions").innerHTML = state.items.map((item) => `<option value="${escapeHtml(item.name)}"></option>`).join("");
+    const options = [...new Set([...BASIC_ITEMS, ...state.items.map((item) => item.name)])]
+      .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+    $("itemOptions").innerHTML = options.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
   }
 
   async function loadEntries() {
@@ -343,19 +353,29 @@
     $("exportCsvBtn").addEventListener("click", exportCsv);
     $("printBtn").addEventListener("click", () => window.print());
     $("itemForm").addEventListener("submit", addItem);
-    $("installBtn").addEventListener("click", async () => {
+    document.querySelectorAll("[data-install-app]").forEach((button) => button.addEventListener("click", async () => {
       if (!state.deferredPrompt) return toast("Browser menu se Install App choose karein");
       state.deferredPrompt.prompt();
       await state.deferredPrompt.userChoice;
       state.deferredPrompt = null;
-      $("installBtn").classList.add("hidden");
-    });
+      updateInstallButtons();
+    }));
     window.addEventListener("beforeinstallprompt", (event) => {
       event.preventDefault();
       state.deferredPrompt = event;
-      $("installBtn").classList.remove("hidden");
+      updateInstallButtons();
     });
-    window.addEventListener("appinstalled", () => $("installBtn").classList.add("hidden"));
+    window.addEventListener("appinstalled", () => {
+      state.deferredPrompt = null;
+      updateInstallButtons();
+    });
+  }
+
+  function updateInstallButtons() {
+    const installed = matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    document.querySelectorAll("[data-install-app]").forEach((button) => {
+      button.classList.toggle("hidden", installed || !state.deferredPrompt);
+    });
   }
 
   function init() {
@@ -365,8 +385,8 @@
     $("filterTo").value = today();
     $("analyticsFrom").value = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     $("analyticsTo").value = today();
-    if (matchMedia("(display-mode: standalone)").matches) $("installBtn").classList.add("hidden");
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=1").catch(console.error);
+    updateInstallButtons();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=2").catch(console.error);
     restoreSession();
   }
 
