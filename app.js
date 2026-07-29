@@ -3,7 +3,21 @@
 
   const config = window.MAQSOOD_CONFIG || {};
   const SESSION_KEY = "maqsood-karyana-session";
-  const state = { token: localStorage.getItem(SESSION_KEY) || "", items: [], entries: [], ledger: [], deferredPrompt: null };
+  const PROFILE_KEY = "maqsood-karyana-profile";
+  const OFFLINE_QUEUE_KEY = "maqsood-karyana-offline-drafts";
+  const readStored = (key, fallback) => {
+    try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+  };
+  const state = {
+    token: localStorage.getItem(SESSION_KEY) || "",
+    profile: String(localStorage.getItem(PROFILE_KEY) || "").trim(),
+    offlineDrafts: readStored(OFFLINE_QUEUE_KEY, []),
+    items: [],
+    entries: [],
+    ledger: [],
+    deferredPrompt: null,
+    syncing: false
+  };
   const BASIC_ITEMS = [
     "Aata", "Chawal", "Cheeni", "Daal Chana", "Daal Masoor", "Daal Moong",
     "Daal Mash", "Daal Arhar", "Besan", "Suji", "Maida", "Namak",
@@ -24,6 +38,7 @@
   const money = (value) => `Rs ${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
   const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(new Date());
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+  const clientRef = () => crypto.randomUUID?.() || `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   async function api(path, options = {}) {
     const response = await fetch(`${config.supabaseUrl}/rest/v1/${path}`, {
@@ -53,6 +68,8 @@
     $("loginScreen").classList.add("hidden");
     $("appScreen").classList.remove("hidden");
     $("headerDate").textContent = new Intl.DateTimeFormat("en-PK", { dateStyle: "medium", timeZone: "Asia/Karachi" }).format(new Date());
+    updateProfileUi();
+    renderOfflineDrafts();
   }
 
   function showLogin() {
@@ -70,7 +87,9 @@
       localStorage.setItem(SESSION_KEY, state.token);
       $("loginPassword").value = "";
       showApp();
+      ensureProfile();
       await refreshAll();
+      await syncOfflineDrafts();
     } catch (error) {
       console.error(error);
       toast("Login failed. Supabase SQL aur config check karein.");
@@ -79,16 +98,50 @@
 
   async function restoreSession() {
     if (!configured || !state.token) return showLogin();
+    if (!navigator.onLine) {
+      showApp();
+      ensureProfile();
+      toast("Offline mode: nayi entries draft mein save hongi");
+      return;
+    }
     try {
       const result = await api("rpc/store_restore_session", { method: "POST", body: "{}" });
       if (!result?.authenticated) throw new Error("Expired");
       showApp();
+      ensureProfile();
       await refreshAll();
+      await syncOfflineDrafts();
     } catch {
       state.token = "";
       localStorage.removeItem(SESSION_KEY);
       showLogin();
     }
+  }
+
+  function updateProfileUi() {
+    const name = state.profile || "Profile";
+    $("profileName").textContent = name;
+    $("profileInitial").textContent = name.charAt(0).toUpperCase() || "?";
+    $("profileModalInitial").textContent = name.charAt(0).toUpperCase() || "?";
+  }
+
+  function ensureProfile(force = false) {
+    $("deviceProfileName").value = state.profile;
+    $("cancelProfileBtn").classList.toggle("hidden", !state.profile);
+    $("profileModal").classList.toggle("hidden", Boolean(state.profile) && !force);
+    updateProfileUi();
+  }
+
+  function saveProfile(event) {
+    event.preventDefault();
+    const name = $("deviceProfileName").value.trim();
+    if (!name) return;
+    state.profile = name;
+    localStorage.setItem(PROFILE_KEY, name);
+    $("profileModal").classList.add("hidden");
+    updateProfileUi();
+    renderDashboard();
+    toast("Profile save ho gayi");
   }
 
   async function logout() {
@@ -196,9 +249,11 @@
     const todayRows = state.entries.filter((row) => row.purchase_date === today());
     const todayTotals = totals(todayRows);
     $("todayTotal").textContent = money(todayTotals.total);
-    $("todayPaid").textContent = money(todayTotals.paid);
-    $("todayUnpaid").textContent = money(todayTotals.remaining);
     $("todayCount").textContent = todayRows.length;
+    $("headerTodayTotal").textContent = money(todayTotals.total);
+    $("headerTodayCount").textContent = `${todayRows.length} items`;
+    $("todayEnteredBy").textContent = [...new Set(todayRows.map((row) => row.entered_by).filter(Boolean))].join(", ") || "-";
+    $("offlineDraftCount").textContent = state.offlineDrafts.length;
     const groups = grouped(state.entries);
     const frequent = [...groups].sort((a, b) => b.count - a.count)[0];
     const spending = [...groups].sort((a, b) => b.spend - a.spend)[0];
@@ -208,8 +263,73 @@
     $("allRemaining").textContent = money(allTotals.remaining);
     renderLedger(allTotals);
     $("recentList").innerHTML = state.entries.slice(0, 6).map((row) => `
-      <div class="record-row"><div><strong>${escapeHtml(row.item_name)}</strong><span>${escapeHtml(row.purchase_date)} · ${escapeHtml(row.quantity)} ${escapeHtml(row.unit)}</span></div><strong>${money(row.total_amount)}</strong></div>
+      <div class="record-row"><div><strong>${escapeHtml(row.item_name)}</strong><span>${escapeHtml(row.purchase_date)} · ${escapeHtml(row.entered_by || "Purana record")}</span></div><strong>${money(row.total_amount)}</strong></div>
     `).join("") || `<p class="empty">Abhi koi record nahi.</p>`;
+    renderOfflineDrafts();
+  }
+
+  function persistOfflineDrafts() {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(state.offlineDrafts));
+    renderOfflineDrafts();
+  }
+
+  function renderOfflineDrafts() {
+    if (!$("offlineDraftPanel")) return;
+    const count = state.offlineDrafts.length;
+    $("offlineDraftPanel").classList.toggle("hidden", count === 0);
+    $("offlineBadge").classList.toggle("hidden", navigator.onLine && count === 0);
+    $("offlineBadge").textContent = navigator.onLine ? `${count} drafts` : `Offline · ${count} drafts`;
+    $("offlineDraftCount").textContent = count;
+    $("offlineDraftList").innerHTML = state.offlineDrafts.map((row) => `
+      <div class="record-row">
+        <div><strong>${escapeHtml(row.item_name)}</strong><span>${escapeHtml(row.purchase_date)} · ${escapeHtml(row.entered_by)}</span></div>
+        <div class="draft-end"><strong>${money(row.total_amount)}</strong><button class="row-action danger" data-delete-draft="${row.local_id}">Delete</button></div>
+      </div>`).join("");
+    $("offlineDraftList").querySelectorAll("[data-delete-draft]").forEach((button) => button.addEventListener("click", () => {
+      state.offlineDrafts = state.offlineDrafts.filter((row) => row.local_id !== button.dataset.deleteDraft);
+      persistOfflineDrafts();
+      renderDashboard();
+    }));
+  }
+
+  function queueOfflineEntry(row) {
+    state.offlineDrafts.push({ ...row, local_id: clientRef() });
+    persistOfflineDrafts();
+    clearEntry();
+    showView("dashboard");
+    renderDashboard();
+    toast("Internet nahi. Entry offline draft mein save ho gayi.");
+  }
+
+  async function syncOfflineDrafts() {
+    if (!navigator.onLine || !state.token || state.syncing || !state.offlineDrafts.length) return;
+    state.syncing = true;
+    const pending = [...state.offlineDrafts];
+    for (const row of pending) {
+      try {
+        const item = await ensureItem(row.item_name);
+        const body = { ...row, item_id: item?.id || null };
+        delete body.local_id;
+        await api("store_entries?on_conflict=client_ref", {
+          method: "POST",
+          body: JSON.stringify(body),
+          prefer: "resolution=merge-duplicates,return=minimal"
+        });
+        state.offlineDrafts = state.offlineDrafts.filter((draft) => draft.local_id !== row.local_id);
+        persistOfflineDrafts();
+      } catch (error) {
+        console.error("Draft sync failed", error);
+        break;
+      }
+    }
+    state.syncing = false;
+    if (state.offlineDrafts.length === 0) {
+      await refreshAll();
+      toast("Offline entries sync ho gayi hain");
+    } else {
+      renderOfflineDrafts();
+      toast("Kuch drafts sync nahi ho sake. Updated SQL check karein.");
+    }
   }
 
   function ledgerTotals() {
@@ -302,20 +422,34 @@
     const paid = Number($("paidAmount").value || 0);
     if (!name) return toast("Item name required");
     if (paid > total) return toast("Paid amount total se zyada nahi ho sakta");
+    if (!state.profile) {
+      ensureProfile(true);
+      return toast("Pehle apna naam save karein");
+    }
+    const id = $("entryId").value;
+    if (id && !navigator.onLine) return toast("Purana record edit karne ke liye internet chahiye");
+    const existing = id ? state.entries.find((row) => row.id === id) : null;
+    const baseRow = {
+      purchase_date: $("purchaseDate").value,
+      item_name: name,
+      quantity: existing?.quantity || 1,
+      unit: existing?.unit || "Other",
+      total_amount: total,
+      paid_amount: existing?.paid_amount || 0,
+      note: existing?.note || "",
+      source_group: existing?.source_group || "daily"
+    };
+    if (!id) {
+      baseRow.entered_by = state.profile;
+      baseRow.client_ref = clientRef();
+    }
+    if (!navigator.onLine) return queueOfflineEntry(baseRow);
     try {
       const item = await ensureItem(name);
       const row = {
-        purchase_date: $("purchaseDate").value,
+        ...baseRow,
         item_id: item?.id || null,
-        item_name: name,
-        quantity: Number($("quantity").value),
-        unit: $("unit").value,
-        total_amount: total,
-        paid_amount: paid,
-        note: $("note").value.trim(),
-        source_group: "daily"
       };
-      const id = $("entryId").value;
       await api(id ? `store_entries?id=eq.${encodeURIComponent(id)}` : "store_entries", { method: id ? "PATCH" : "POST", body: JSON.stringify(row), prefer: "return=minimal" });
       clearEntry();
       await refreshAll();
@@ -323,6 +457,7 @@
       toast(id ? "Record updated" : "Saman save ho gaya");
     } catch (error) {
       console.error(error);
+      if (!id && (error instanceof TypeError || !navigator.onLine)) return queueOfflineEntry(baseRow);
       toast("Record save failed");
     }
   }
@@ -353,11 +488,11 @@
     const rows = filteredEntries();
     const sum = totals(rows);
     $("historySummary").innerHTML = [
-      ["Records", rows.length], ["Total", money(sum.total)], ["Paid", money(sum.paid)], ["Remaining", money(sum.remaining)]
+      ["Records", rows.length], ["Total", money(sum.total)]
     ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
     $("historyTable").innerHTML = rows.length ? `
-      <table><thead><tr><th>Date</th><th>Item</th><th>Quantity</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Status</th><th>Note</th><th>Action</th></tr></thead>
-      <tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.purchase_date)}</td><td>${escapeHtml(row.item_name)}</td><td>${escapeHtml(row.quantity)} ${escapeHtml(row.unit)}</td><td>${money(row.total_amount)}</td><td>${money(row.paid_amount)}</td><td>${money(Number(row.total_amount)-Number(row.paid_amount))}</td><td>${entryStatus(row)}</td><td>${escapeHtml(row.note || "-")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`).join("")}</tbody></table>
+      <table><thead><tr><th>Date</th><th>Item</th><th>Total</th><th>Entry karne wala</th><th>Action</th></tr></thead>
+      <tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.purchase_date)}</td><td>${escapeHtml(row.item_name)}</td><td>${money(row.total_amount)}</td><td>${escapeHtml(row.entered_by || "Purana record")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`).join("")}</tbody></table>
     ` : `<p class="empty">Is filter mein koi record nahi.</p>`;
     $("historyTable").querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editEntry(button.dataset.edit)));
     $("historyTable").querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteEntry(button.dataset.delete)));
@@ -439,8 +574,8 @@
   function exportCsv() {
     const rows = filteredEntries();
     if (!rows.length) return toast("Export ke liye data nahi");
-    const headers = ["Date","Item","Quantity","Unit","Total","Paid","Remaining","Status","Note"];
-    const values = rows.map((row) => [row.purchase_date,row.item_name,row.quantity,row.unit,row.total_amount,row.paid_amount,Number(row.total_amount)-Number(row.paid_amount),entryStatus(row),row.note || ""]);
+    const headers = ["Date","Item","Total","Entered By"];
+    const values = rows.map((row) => [row.purchase_date,row.item_name,row.total_amount,row.entered_by || "Purana record"]);
     const csv = [headers, ...values].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const link = document.createElement("a");
@@ -458,6 +593,13 @@
       $("showLoginPassword").textContent = input.type === "password" ? "Show" : "Hide";
     });
     $("logoutBtn").addEventListener("click", logout);
+    $("profileBtn").addEventListener("click", () => ensureProfile(true));
+    $("profileForm").addEventListener("submit", saveProfile);
+    $("cancelProfileBtn").addEventListener("click", () => $("profileModal").classList.add("hidden"));
+    $("deviceProfileName").addEventListener("input", () => {
+      $("profileModalInitial").textContent = $("deviceProfileName").value.trim().charAt(0).toUpperCase() || "?";
+    });
+    $("syncDraftsBtn").addEventListener("click", syncOfflineDrafts);
     document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
     document.querySelectorAll("[data-open-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.openView)));
     $("entryForm").addEventListener("submit", saveEntry);
@@ -487,6 +629,14 @@
       state.deferredPrompt = null;
       updateInstallButtons();
     });
+    window.addEventListener("online", async () => {
+      $("offlineBadge").classList.add("hidden");
+      await syncOfflineDrafts();
+    });
+    window.addEventListener("offline", () => {
+      renderOfflineDrafts();
+      toast("Offline mode on ho gaya");
+    });
   }
 
   function updateInstallButtons() {
@@ -505,7 +655,8 @@
     $("analyticsTo").value = today();
     $("ledgerDate").value = today();
     updateInstallButtons();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=6").catch(console.error);
+    renderOfflineDrafts();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=7").catch(console.error);
     restoreSession();
   }
 

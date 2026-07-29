@@ -1,5 +1,15 @@
 # Maqsood Karyana Store
 
+## Version 7 update
+
+`supabase_setup.sql` ko Supabase SQL Editor mein dobara run karein. Is se purana data delete ya replace nahi hota; sirf `entered_by` aur offline sync ke liye `client_ref` columns safely add hote hain.
+
+- Har device par pehli dafa sirf naam poocha jata hai.
+- Nayi entry ke sath entry karne wale ka naam save hota hai.
+- Internet band ho to entry isi device mein offline draft rehti hai.
+- Internet wapas aane par draft automatically Supabase mein sync hoti hai.
+- Aaj ka total aur item count app ke upar nazar aata hai.
+
 Mobile-first PWA for daily grocery purchases, paid/unpaid balances, item catalogue, history and analytics.
 
 ## Supabase

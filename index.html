@@ -47,6 +47,16 @@
         </div>
       </div>
       <div class="header-actions">
+        <div class="today-chip" title="Aaj ka katcha">
+          <span>Aaj</span>
+          <strong id="headerTodayTotal">Rs 0</strong>
+          <small id="headerTodayCount">0 items</small>
+        </div>
+        <button id="profileBtn" class="profile-button" type="button" title="Profile badlein">
+          <span id="profileInitial">?</span>
+          <strong id="profileName">Profile</strong>
+        </button>
+        <span id="offlineBadge" class="offline-badge hidden">Offline</span>
         <button id="installBtn" class="icon-button hidden" type="button" title="Install app" aria-label="Install app" data-install-app>↓</button>
         <button id="logoutBtn" class="icon-button" type="button" title="Logout" aria-label="Logout">↪</button>
       </div>
@@ -67,11 +77,18 @@
           <button class="primary" type="button" data-open-view="entry">+ Add Saman</button>
         </div>
         <div class="stats-grid">
-          <article class="stat"><span>Total</span><strong id="todayTotal">Rs 0</strong></article>
-          <article class="stat paid"><span>Paid</span><strong id="todayPaid">Rs 0</strong></article>
-          <article class="stat unpaid"><span>Unpaid</span><strong id="todayUnpaid">Rs 0</strong></article>
-          <article class="stat"><span>Items</span><strong id="todayCount">0</strong></article>
+          <article class="stat"><span>Aaj ka total</span><strong id="todayTotal">Rs 0</strong></article>
+          <article class="stat"><span>Aaj ki entries</span><strong id="todayCount">0</strong></article>
+          <article class="stat"><span>Entry karne wala</span><strong id="todayEnteredBy">-</strong></article>
+          <article class="stat unpaid"><span>Offline drafts</span><strong id="offlineDraftCount">0</strong></article>
         </div>
+        <article id="offlineDraftPanel" class="panel offline-panel hidden">
+          <div class="panel-head">
+            <div><p class="eyebrow">Offline</p><h3>Internet ka intezar karti entries</h3></div>
+            <button id="syncDraftsBtn" class="primary" type="button">Ab sync karein</button>
+          </div>
+          <div id="offlineDraftList" class="record-list"></div>
+        </article>
         <div class="dashboard-grid">
           <article class="panel">
             <div class="panel-head"><h3>Recent entries</h3><button class="text-button" data-open-view="history">View all</button></div>
@@ -128,12 +145,12 @@
             <input id="itemName" list="itemOptions" autocomplete="off" placeholder="Example: Aata" required>
             <datalist id="itemOptions"></datalist>
           </label>
-          <label><span>Quantity</span><input id="quantity" type="number" min="0.01" step="0.01" value="1" required></label>
-          <label><span>Unit</span><select id="unit"><option>Kg</option><option>Gram</option><option>Liter</option><option>Packet</option><option>Piece</option><option>Dozen</option><option>Other</option></select></label>
           <label><span>Total amount</span><input id="totalAmount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
-          <label><span>Paid amount</span><input id="paidAmount" type="number" min="0" step="0.01" inputmode="decimal" value="0" required></label>
-          <label><span>Remaining</span><input id="remainingAmount" type="text" value="Rs 0" readonly></label>
-          <label class="span-3"><span>Note (optional)</span><textarea id="note" rows="3" placeholder="Shop, quality ya koi aur detail"></textarea></label>
+          <input id="quantity" type="hidden" value="1">
+          <input id="unit" type="hidden" value="Other">
+          <input id="paidAmount" type="hidden" value="0">
+          <input id="remainingAmount" type="hidden" value="Rs 0">
+          <input id="note" type="hidden" value="">
           <div class="form-actions span-3">
             <button class="primary" type="submit">Save Record</button>
             <button id="clearEntryBtn" class="secondary" type="button">Clear</button>
@@ -189,7 +206,21 @@
     </nav>
   </div>
 
-  <script src="config.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <div id="profileModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+    <form id="profileForm" class="profile-modal">
+      <div class="profile-avatar" id="profileModalInitial">?</div>
+      <p class="eyebrow">Is device ki profile</p>
+      <h2 id="profileTitle">Aap ka naam</h2>
+      <p>Sirf naam likhein. Har saman ke record ke sath pata chalega ke entry kis ne ki.</p>
+      <label><span>Naam</span><input id="deviceProfileName" maxlength="60" autocomplete="name" placeholder="Example: Maqsood" required></label>
+      <div class="form-actions">
+        <button class="primary" type="submit">Naam save karein</button>
+        <button id="cancelProfileBtn" class="secondary" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="config.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

@@ -44,7 +44,10 @@ create table if not exists public.store_entries (
 );
 alter table public.store_entries add column if not exists source_group text not null default 'daily';
 alter table public.store_entries add column if not exists source_ref text;
+alter table public.store_entries add column if not exists entered_by text not null default 'Purana record';
+alter table public.store_entries add column if not exists client_ref text;
 create unique index if not exists store_entries_source_ref_unique on public.store_entries(source_ref) where source_ref is not null;
+create unique index if not exists store_entries_client_ref_unique on public.store_entries(client_ref) where client_ref is not null;
 
 create table if not exists public.store_ledger (
   id uuid primary key default gen_random_uuid(),
