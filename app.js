@@ -415,12 +415,31 @@
     return result?.[0] || state.items.find((item) => item.name.toLowerCase() === canonicalName.toLowerCase());
   }
 
+  function confirmEntrySave({ id, name, total, purchaseDate }) {
+    const allRecords = [...state.entries, ...state.offlineDrafts];
+    const duplicate = !id && allRecords.some((row) =>
+      row.purchase_date === purchaseDate &&
+      normalizedItemName(row.item_name).toLowerCase() === name.toLowerCase() &&
+      Number(row.total_amount) === total
+    );
+    const messages = [];
+    if (total > 1000) {
+      messages.push(`Bari amount warning: ${money(total)} Rs 1,000 se zyada hai. Amount dobara check karein.`);
+    }
+    if (duplicate) {
+      messages.push("Duplicate warning: isi date par same item aur same amount pehle se mojood hai.");
+    }
+    messages.push(`${id ? "Record update" : "Naya record"}:\nDate: ${purchaseDate}\nItem: ${name}\nAmount: ${money(total)}\n\nKya ye details bilkul theek hain?`);
+    return window.confirm(messages.join("\n\n"));
+  }
+
   async function saveEntry(event) {
     event.preventDefault();
     const name = normalizedItemName($("itemName").value);
     const total = Number($("totalAmount").value || 0);
     const paid = Number($("paidAmount").value || 0);
     if (!name) return toast("Item name required");
+    if (total <= 0) return toast("Total amount 0 se zyada hona chahiye");
     if (paid > total) return toast("Paid amount total se zyada nahi ho sakta");
     if (!state.profile) {
       ensureProfile(true);
@@ -428,9 +447,11 @@
     }
     const id = $("entryId").value;
     if (id && !navigator.onLine) return toast("Purana record edit karne ke liye internet chahiye");
+    const purchaseDate = $("purchaseDate").value;
+    if (!confirmEntrySave({ id, name, total, purchaseDate })) return;
     const existing = id ? state.entries.find((row) => row.id === id) : null;
     const baseRow = {
-      purchase_date: $("purchaseDate").value,
+      purchase_date: purchaseDate,
       item_name: name,
       quantity: existing?.quantity || 1,
       unit: existing?.unit || "Other",
@@ -476,15 +497,26 @@
     const to = $("filterTo").value;
     const payment = $("filterPayment").value;
     const item = $("filterItem").value.trim().toLowerCase();
+    const minimumValue = $("filterAmountMin").value;
+    const maximumValue = $("filterAmountMax").value;
+    const minimum = minimumValue === "" ? null : Number(minimumValue);
+    const maximum = maximumValue === "" ? null : Number(maximumValue);
     return state.entries.filter((row) =>
       (!from || row.purchase_date >= from) &&
       (!to || row.purchase_date <= to) &&
       (!payment || entryStatus(row) === payment) &&
-      (!item || row.item_name.toLowerCase().includes(item))
+      (!item || row.item_name.toLowerCase().includes(item)) &&
+      (minimum === null || Number(row.total_amount) >= minimum) &&
+      (maximum === null || Number(row.total_amount) <= maximum)
     );
   }
 
   function renderHistory() {
+    const minimum = $("filterAmountMin").value;
+    const maximum = $("filterAmountMax").value;
+    if (minimum !== "" && maximum !== "" && Number(minimum) > Number(maximum)) {
+      return toast("Minimum amount maximum amount se zyada nahi ho sakta");
+    }
     const rows = filteredEntries();
     const sum = totals(rows);
     $("historySummary").innerHTML = [
@@ -606,7 +638,7 @@
     $("clearEntryBtn").addEventListener("click", clearEntry);
     $("totalAmount").addEventListener("input", updateRemaining);
     $("paidAmount").addEventListener("input", updateRemaining);
-    ["filterFrom","filterTo","filterPayment","filterItem"].forEach((id) => $(id).addEventListener("change", renderHistory));
+    ["filterFrom","filterTo","filterPayment","filterItem","filterAmountMin","filterAmountMax"].forEach((id) => $(id).addEventListener("change", renderHistory));
     $("showHistoryBtn").addEventListener("click", renderHistory);
     $("showAnalyticsBtn").addEventListener("click", renderAnalytics);
     $("exportCsvBtn").addEventListener("click", exportCsv);
@@ -656,7 +688,7 @@
     $("ledgerDate").value = today();
     updateInstallButtons();
     renderOfflineDrafts();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=7").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=8").catch(console.error);
     restoreSession();
   }
 

@@ -1,6 +1,15 @@
 # Maqsood Karyana Store
 
-## Version 7 update
+## Version 8 update
+
+Version 8 ke liye koi naya SQL run nahi karna. Purana data bilkul change nahi hota.
+
+- Save se pehle date, item aur amount ki confirmation aati hai.
+- Same date, item aur amount dobara add ho to duplicate warning aati hai.
+- Rs 1,000 tak amount normal hai; Rs 1,000 se zyada par bari amount warning aati hai.
+- History mein minimum aur maximum amount se search ki ja sakti hai.
+
+## Version 7 database setup
 
 `supabase_setup.sql` ko Supabase SQL Editor mein dobara run karein. Is se purana data delete ya replace nahi hota; sirf `entered_by` aur offline sync ke liye `client_ref` columns safely add hote hain.
 
