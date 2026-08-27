@@ -1,5 +1,17 @@
 # Maqsood Karyana Store
 
+## Version 9 update
+
+Version 9 ke liye koi naya SQL run nahi karna. Purana Supabase data delete, replace ya migrate nahi hota.
+
+- Overview par automatic professional visual dashboard add hua hai.
+- Last 30 days spending trend aur previous 30 days comparison automatically calculate hota hai.
+- Top spending items donut graph aur Paid vs Baqaya health graph show hota hai.
+- Add Saman form mein Urdu/Pakistan voice typing button add hua hai. Voice support Chrome/Edge aur microphone permission par depend karti hai.
+- Frequent, saved aur common saman ki online picture cards automatically show hoti hain.
+- Picture card click karne par item name entry form mein fill ho jata hai; record tab tak save nahi hota jab tak amount aur final confirmation complete na ho.
+- Online picture unavailable ho to letter fallback show hota hai.
+
 ## Version 8 update
 
 Version 8 ke liye koi naya SQL run nahi karna. Purana data bilkul change nahi hota.
@@ -52,4 +64,4 @@ The first login uses the password configured in `supabase_setup.sql`. A secure r
 - Analytics combines common spelling/quantity variants such as `Ghee 1 kilo` with `Ghee`, `Patti` with `Chai Patti`, and `Chawal 2 kilo` with `Chawal`.
 - CSV downloads the currently filtered history.
 - Print / PDF opens the browser print screen. On mobile or desktop choose **Save as PDF** for a PDF file.
-- The app shell works offline, but saving/loading database records requires internet.
+- The app shell works offline. New purchases can be kept as local drafts and automatically synced when internet returns; existing database records load/edit karne ke liye internet chahiye.

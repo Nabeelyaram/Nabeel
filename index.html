@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=6">
   <link rel="icon" href="app-icon-192.png?v=6">
   <link rel="apple-touch-icon" href="app-icon-192.png?v=6">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -82,6 +82,15 @@
           <article class="stat"><span>Entry karne wala</span><strong id="todayEnteredBy">-</strong></article>
           <article class="stat unpaid"><span>Offline drafts</span><strong id="offlineDraftCount">0</strong></article>
         </div>
+        <section class="visual-dashboard" aria-label="Automatic business insights">
+          <article class="panel chart-panel trend-panel">
+            <div class="panel-head"><div><p class="eyebrow">Automatic insight</p><h3>Last 30 days spending</h3></div><strong id="trendTotal" class="chart-total">Rs 0</strong></div>
+            <div id="spendingTrendChart" class="line-chart" aria-label="30 day spending graph"></div>
+            <div id="trendComparison" class="trend-comparison">Data calculate ho raha hai…</div>
+          </article>
+          <article class="panel chart-panel"><div class="panel-head"><div><p class="eyebrow">Spend mix</p><h3>Top saman</h3></div></div><div id="dashboardTopItems" class="donut-layout"></div></article>
+          <article class="panel chart-panel"><div class="panel-head"><div><p class="eyebrow">Account health</p><h3>Paid vs baqaya</h3></div></div><div id="accountHealthChart" class="account-health"></div></article>
+        </section>
         <article id="offlineDraftPanel" class="panel offline-panel hidden">
           <div class="panel-head">
             <div><p class="eyebrow">Offline</p><h3>Internet ka intezar karti entries</h3></div>
@@ -142,7 +151,7 @@
           <label><span>Date</span><input id="purchaseDate" type="date" required></label>
           <label class="span-2">
             <span>Item name</span>
-            <input id="itemName" list="itemOptions" autocomplete="off" placeholder="Example: Aata" required>
+            <span class="voice-field"><input id="itemName" list="itemOptions" autocomplete="off" placeholder="Example: Aata" required><button id="voiceItemBtn" class="voice-button" type="button" aria-label="Voice se item name likhein" title="Voice se item bolain">🎙 <span>Bolain</span></button></span>
             <datalist id="itemOptions"></datalist>
           </label>
           <label><span>Total amount</span><input id="totalAmount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
@@ -156,6 +165,7 @@
             <button id="clearEntryBtn" class="secondary" type="button">Clear</button>
           </div>
         </form>
+        <article class="panel quick-items-panel"><div class="panel-head"><div><p class="eyebrow">Quick add</p><h3>Tasveer se saman chunain</h3></div><small>Card par click karain</small></div><div id="quickItemGallery" class="quick-item-gallery"></div></article>
       </section>
 
       <section id="historyView" class="view hidden">
@@ -223,6 +233,6 @@
   </div>
 
   <script src="config.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

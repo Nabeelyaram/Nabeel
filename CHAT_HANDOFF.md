@@ -1,6 +1,6 @@
 # Maqsood Karyana Store - Codex Handoff
 
-Last updated: 2026-08-02 (Asia/Karachi)
+Last updated: 2026-08-27 (Asia/Karachi)
 
 ## Canonical OneDrive Folder
 
@@ -10,11 +10,18 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-safety-search-v8.zip`
+- Latest package: `maqsood-karyana-store-visual-voice-v9.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Professional automatic dashboard added with a 30-day spending trend, period comparison, top-item donut chart and paid-vs-due health graph.
+- Voice item-name typing added using the browser Speech Recognition API (`ur-PK`); Chrome/Edge and microphone permission are recommended.
+- Entry view now shows online image cards for frequent, saved and common grocery items.
+- Clicking an image card fills the item name only; the amount and existing final confirmation are still required before saving.
+- Image failures use a safe letter fallback.
+- Version 9 changes only frontend files and does not delete or modify existing Supabase rows.
 
 - Entry form simplified to Date, Item and Total Amount.
 - Aaj ka total and item count appear in the header.
@@ -30,7 +37,7 @@ Future work should be performed from this OneDrive folder.
 
 ## Required Supabase Step
 
-Version 8 requires no new SQL. If version 7 SQL has already been run, deploy the new frontend files only. Existing rows remain unchanged.
+Version 9 requires no new SQL. If version 7 SQL has already been run, deploy the new frontend files only. Existing rows remain unchanged.
 
 ## Safety Rules
 

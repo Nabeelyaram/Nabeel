@@ -33,6 +33,7 @@
     "Adrak", "Hari Mirch", "Lemon", "Sabzi", "Chicken", "Beef",
     "Mutton", "Fish"
   ];
+  const CHART_COLORS = ["#176b45", "#d38b26", "#3a7ca5", "#8e5ea2", "#cf5c5c"];
   const $ = (id) => document.getElementById(id);
   const configured = /^https:\/\//.test(config.supabaseUrl || "") && !String(config.supabaseAnonKey || "").startsWith("YOUR_");
   const money = (value) => `Rs ${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
@@ -185,6 +186,7 @@
     renderHistory();
     renderAnalytics();
     renderItems();
+    renderQuickItems();
   }
 
   function entryStatus(row) {
@@ -262,10 +264,39 @@
     const allTotals = totals(state.entries);
     $("allRemaining").textContent = money(allTotals.remaining);
     renderLedger(allTotals);
+    renderVisualDashboard();
     $("recentList").innerHTML = state.entries.slice(0, 6).map((row) => `
       <div class="record-row"><div><strong>${escapeHtml(row.item_name)}</strong><span>${escapeHtml(row.purchase_date)} · ${escapeHtml(row.entered_by || "Purana record")}</span></div><strong>${money(row.total_amount)}</strong></div>
     `).join("") || `<p class="empty">Abhi koi record nahi.</p>`;
     renderOfflineDrafts();
+  }
+
+  function dateOffset(days) {
+    const value = new Date();
+    value.setDate(value.getDate() + days);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(value);
+  }
+
+  function renderVisualDashboard() {
+    const last30 = state.entries.filter((row) => row.purchase_date >= dateOffset(-29) && row.purchase_date <= today());
+    const previous30 = state.entries.filter((row) => row.purchase_date >= dateOffset(-59) && row.purchase_date < dateOffset(-29));
+    const daily = Array.from({ length: 30 }, (_, index) => { const date = dateOffset(index - 29); return { date, value: totals(last30.filter((row) => row.purchase_date === date)).total }; });
+    const maximum = Math.max(...daily.map((point) => point.value), 1);
+    const width = 720, height = 210;
+    const points = daily.map((point, index) => `${(index / 29) * width},${height - (point.value / maximum) * (height - 28) - 8}`).join(" ");
+    $("spendingTrendChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily spending line chart"><defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#176b45" stop-opacity=".28"/><stop offset="1" stop-color="#176b45" stop-opacity=".02"/></linearGradient></defs><line x1="0" y1="${height - 1}" x2="${width}" y2="${height - 1}" class="chart-axis"/><polygon points="0,${height} ${points} ${width},${height}" fill="url(#trendFill)"/><polyline points="${points}" class="trend-line"/></svg><div class="chart-labels"><span>${daily[0].date.slice(5)}</span><span>Aaj</span></div>`;
+    const currentTotal = totals(last30).total, previousTotal = totals(previous30).total;
+    const change = previousTotal ? ((currentTotal - previousTotal) / previousTotal) * 100 : null;
+    $("trendTotal").textContent = money(currentTotal);
+    $("trendComparison").innerHTML = change === null ? `<span class="neutral">30-day comparison ke liye mazeed data chahiye</span>` : `<span class="${change <= 0 ? "positive" : "negative"}">${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}%</span> pichlay 30 din ke muqablay mein`;
+    const top = grouped(last30).sort((a, b) => b.spend - a.spend).slice(0, 5);
+    const topTotal = top.reduce((sum, item) => sum + item.spend, 0) || 1;
+    let cursor = 0;
+    const stops = top.map((item, index) => { const start = cursor; cursor += item.spend / topTotal * 100; return `${CHART_COLORS[index]} ${start}% ${cursor}%`; }).join(", ");
+    $("dashboardTopItems").innerHTML = top.length ? `<div class="donut" style="background:conic-gradient(${stops})"><span>${top.length}<small>items</small></span></div><div class="donut-legend">${top.map((item, index) => `<div><i style="background:${CHART_COLORS[index]}"></i><span>${escapeHtml(item.name)}</span><strong>${money(item.spend)}</strong></div>`).join("")}</div>` : `<p class="empty">Graph ke liye data available nahi.</p>`;
+    const all = totals(state.entries), paid = all.paid, remaining = Math.max(0, all.total - paid);
+    const paidPercent = all.total ? Math.min(100, paid / all.total * 100) : 0;
+    $("accountHealthChart").innerHTML = `<div class="health-number"><strong>${paidPercent.toFixed(0)}%</strong><span>purchases paid</span></div><div class="health-track"><i style="width:${paidPercent}%"></i></div><div class="health-values"><span><i class="paid-dot"></i>Paid <strong>${money(paid)}</strong></span><span><i class="due-dot"></i>Baqaya <strong>${money(remaining)}</strong></span></div>`;
   }
 
   function persistOfflineDrafts() {
@@ -492,6 +523,31 @@
     updateRemaining();
   }
 
+  function itemImageUrl(name) {
+    const query = encodeURIComponent(`${normalizedItemName(name)} grocery product`);
+    return `https://loremflickr.com/320/220/${query}?lock=${encodeURIComponent(normalizedItemName(name).toLowerCase())}`;
+  }
+
+  function renderQuickItems() {
+    const frequentNames = grouped(state.entries).sort((a, b) => b.count - a.count).map((item) => item.name);
+    const names = [...new Set([...frequentNames, ...state.items.map((item) => normalizedItemName(item.name)), ...BASIC_ITEMS])].slice(0, 18);
+    $("quickItemGallery").innerHTML = names.map((name) => `<button class="quick-item-card" type="button" data-quick-item="${escapeHtml(name)}"><span class="quick-image"><img src="${itemImageUrl(name)}" alt="" loading="lazy" referrerpolicy="no-referrer"><b>${escapeHtml(name.charAt(0).toUpperCase())}</b></span><strong>${escapeHtml(name)}</strong><small>Quick add</small></button>`).join("");
+    $("quickItemGallery").querySelectorAll("[data-quick-item]").forEach((button) => button.addEventListener("click", () => { $("itemName").value = button.dataset.quickItem; $("itemName").focus(); $("itemName").scrollIntoView({ behavior: "smooth", block: "center" }); toast(`${button.dataset.quickItem} select ho gaya`); }));
+    $("quickItemGallery").querySelectorAll("img").forEach((image) => image.addEventListener("error", () => image.classList.add("image-failed")));
+  }
+
+  function startVoiceItem() {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) return toast("Is browser mein voice typing support nahi. Chrome/Edge use karein.");
+    const recognition = new Recognition();
+    recognition.lang = "ur-PK"; recognition.interimResults = false; recognition.maxAlternatives = 3;
+    const button = $("voiceItemBtn"); button.classList.add("listening"); button.querySelector("span").textContent = "Sun raha…";
+    recognition.onresult = (event) => { const spoken = event.results[0][0].transcript.replace(/[۔,.!?]/g, "").trim(); $("itemName").value = normalizedItemName(spoken); toast(`Suna gaya: ${spoken}`); };
+    recognition.onerror = () => toast("Voice samajh nahi aayi. Dobara bolain.");
+    recognition.onend = () => { button.classList.remove("listening"); button.querySelector("span").textContent = "Bolain"; };
+    recognition.start();
+  }
+
   function filteredEntries() {
     const from = $("filterFrom").value;
     const to = $("filterTo").value;
@@ -635,6 +691,7 @@
     document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
     document.querySelectorAll("[data-open-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.openView)));
     $("entryForm").addEventListener("submit", saveEntry);
+    $("voiceItemBtn").addEventListener("click", startVoiceItem);
     $("clearEntryBtn").addEventListener("click", clearEntry);
     $("totalAmount").addEventListener("input", updateRemaining);
     $("paidAmount").addEventListener("input", updateRemaining);
@@ -688,7 +745,7 @@
     $("ledgerDate").value = today();
     updateInstallButtons();
     renderOfflineDrafts();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=8").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=9").catch(console.error);
     restoreSession();
   }
 
