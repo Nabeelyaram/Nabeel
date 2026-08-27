@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=6">
   <link rel="icon" href="app-icon-192.png?v=6">
   <link rel="apple-touch-icon" href="app-icon-192.png?v=6">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -84,8 +84,10 @@
         </div>
         <section class="visual-dashboard" aria-label="Automatic business insights">
           <article class="panel chart-panel trend-panel">
-            <div class="panel-head"><div><p class="eyebrow">Automatic insight</p><h3>Last 30 days spending</h3></div><strong id="trendTotal" class="chart-total">Rs 0</strong></div>
+            <div class="panel-head dynamic-chart-head"><div><p class="eyebrow">Live automatic insight</p><h3 id="trendTitle">Last 30 days spending</h3></div><div class="period-controls" role="group" aria-label="Dashboard period"><button type="button" data-dashboard-days="7">7D</button><button type="button" data-dashboard-days="30" class="active">30D</button><button type="button" data-dashboard-days="90">90D</button><button type="button" data-dashboard-days="all">All</button></div></div>
+            <strong id="trendTotal" class="chart-total">Rs 0</strong>
             <div id="spendingTrendChart" class="line-chart" aria-label="30 day spending graph"></div>
+            <div id="chartTooltip" class="chart-tooltip hidden"></div>
             <div id="trendComparison" class="trend-comparison">Data calculate ho raha hai…</div>
           </article>
           <article class="panel chart-panel"><div class="panel-head"><div><p class="eyebrow">Spend mix</p><h3>Top saman</h3></div></div><div id="dashboardTopItems" class="donut-layout"></div></article>
@@ -233,6 +235,6 @@
   </div>
 
   <script src="config.js?v=8"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

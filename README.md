@@ -1,5 +1,14 @@
 # Maqsood Karyana Store
 
+## Version 10 update
+
+- Dashboard ab interactive aur genuinely dynamic hai.
+- 7 days, 30 days, 90 days aur All-time period live select kiya ja sakta hai.
+- Spending line graph, total, previous-period comparison, top-item donut aur paid-vs-baqaya selected period ke mutabiq foran update hote hain.
+- Graph ke har point par hover, keyboard focus ya mobile tap se date aur exact amount show hota hai.
+- Long periods automatically weekly/monthly buckets mein group hote hain taa-ke graph readable rahe.
+- Koi database migration nahi aur koi purana record delete/replace nahi hota.
+
 ## Version 9 update
 
 Version 9 ke liye koi naya SQL run nahi karna. Purana Supabase data delete, replace ya migrate nahi hota.

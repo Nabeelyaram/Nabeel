@@ -16,7 +16,8 @@
     entries: [],
     ledger: [],
     deferredPrompt: null,
-    syncing: false
+    syncing: false,
+    dashboardDays: 30
   };
   const BASIC_ITEMS = [
     "Aata", "Chawal", "Cheeni", "Daal Chana", "Daal Masoor", "Daal Moong",
@@ -278,25 +279,47 @@
   }
 
   function renderVisualDashboard() {
-    const last30 = state.entries.filter((row) => row.purchase_date >= dateOffset(-29) && row.purchase_date <= today());
-    const previous30 = state.entries.filter((row) => row.purchase_date >= dateOffset(-59) && row.purchase_date < dateOffset(-29));
-    const daily = Array.from({ length: 30 }, (_, index) => { const date = dateOffset(index - 29); return { date, value: totals(last30.filter((row) => row.purchase_date === date)).total }; });
+    const allMode = state.dashboardDays === "all";
+    const oldestDate = state.entries.reduce((oldest, row) => !oldest || row.purchase_date < oldest ? row.purchase_date : oldest, today());
+    const startDate = allMode ? oldestDate : dateOffset(-(Number(state.dashboardDays) - 1));
+    const periodDays = allMode ? Math.max(1, Math.round((new Date(`${today()}T12:00:00`) - new Date(`${startDate}T12:00:00`)) / 86400000) + 1) : Number(state.dashboardDays);
+    const currentRows = state.entries.filter((row) => row.purchase_date >= startDate && row.purchase_date <= today());
+    const previousStart = dateOffset(-(periodDays * 2 - 1));
+    const previousEnd = dateOffset(-periodDays);
+    const previousRows = allMode ? [] : state.entries.filter((row) => row.purchase_date >= previousStart && row.purchase_date <= previousEnd);
+    const bucketSize = periodDays > 120 ? 30 : periodDays > 45 ? 7 : 1;
+    const bucketCount = Math.ceil(periodDays / bucketSize);
+    const daily = Array.from({ length: bucketCount }, (_, index) => {
+      const bucketStartOffset = -(periodDays - 1) + index * bucketSize;
+      const bucketEndOffset = Math.min(0, bucketStartOffset + bucketSize - 1);
+      const from = dateOffset(bucketStartOffset), to = dateOffset(bucketEndOffset);
+      return { date: from, label: bucketSize === 1 ? from : `${from.slice(5)}–${to.slice(5)}`, value: totals(currentRows.filter((row) => row.purchase_date >= from && row.purchase_date <= to)).total };
+    });
     const maximum = Math.max(...daily.map((point) => point.value), 1);
     const width = 720, height = 210;
-    const points = daily.map((point, index) => `${(index / 29) * width},${height - (point.value / maximum) * (height - 28) - 8}`).join(" ");
-    $("spendingTrendChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily spending line chart"><defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#176b45" stop-opacity=".28"/><stop offset="1" stop-color="#176b45" stop-opacity=".02"/></linearGradient></defs><line x1="0" y1="${height - 1}" x2="${width}" y2="${height - 1}" class="chart-axis"/><polygon points="0,${height} ${points} ${width},${height}" fill="url(#trendFill)"/><polyline points="${points}" class="trend-line"/></svg><div class="chart-labels"><span>${daily[0].date.slice(5)}</span><span>Aaj</span></div>`;
-    const currentTotal = totals(last30).total, previousTotal = totals(previous30).total;
+    const divisor = Math.max(1, daily.length - 1);
+    const chartPoints = daily.map((point, index) => ({ ...point, x: (index / divisor) * width, y: height - (point.value / maximum) * (height - 28) - 8 }));
+    const points = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
+    $("spendingTrendChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Dynamic spending line chart"><defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#176b45" stop-opacity=".28"/><stop offset="1" stop-color="#176b45" stop-opacity=".02"/></linearGradient></defs><line x1="0" y1="${height - 1}" x2="${width}" y2="${height - 1}" class="chart-axis"/><polygon points="0,${height} ${points} ${width},${height}" fill="url(#trendFill)"/><polyline points="${points}" class="trend-line"/>${chartPoints.map((point, index) => `<circle class="trend-point" cx="${point.x}" cy="${point.y}" r="7" tabindex="0" data-point="${index}" aria-label="${escapeHtml(point.label)} ${money(point.value)}"></circle>`).join("")}</svg><div class="chart-labels"><span>${daily[0]?.label || startDate}</span><span>Aaj</span></div>`;
+    $("spendingTrendChart").querySelectorAll("[data-point]").forEach((point) => {
+      const show = () => { const data = chartPoints[Number(point.dataset.point)]; $("chartTooltip").innerHTML = `<strong>${escapeHtml(data.label)}</strong><span>${money(data.value)}</span>`; $("chartTooltip").classList.remove("hidden"); };
+      point.addEventListener("mouseenter", show); point.addEventListener("focus", show); point.addEventListener("click", show);
+      point.addEventListener("mouseleave", () => $("chartTooltip").classList.add("hidden")); point.addEventListener("blur", () => $("chartTooltip").classList.add("hidden"));
+    });
+    const currentTotal = totals(currentRows).total, previousTotal = totals(previousRows).total;
     const change = previousTotal ? ((currentTotal - previousTotal) / previousTotal) * 100 : null;
     $("trendTotal").textContent = money(currentTotal);
-    $("trendComparison").innerHTML = change === null ? `<span class="neutral">30-day comparison ke liye mazeed data chahiye</span>` : `<span class="${change <= 0 ? "positive" : "negative"}">${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}%</span> pichlay 30 din ke muqablay mein`;
-    const top = grouped(last30).sort((a, b) => b.spend - a.spend).slice(0, 5);
+    $("trendTitle").textContent = allMode ? "All-time spending" : `Last ${periodDays} days spending`;
+    $("trendComparison").innerHTML = allMode ? `<span class="neutral">${currentRows.length} total entries · ${startDate} se aaj tak</span>` : change === null ? `<span class="neutral">Is period ke comparison ke liye mazeed data chahiye</span>` : `<span class="${change <= 0 ? "positive" : "negative"}">${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}%</span> previous ${periodDays} days ke muqablay mein`;
+    const top = grouped(currentRows).sort((a, b) => b.spend - a.spend).slice(0, 5);
     const topTotal = top.reduce((sum, item) => sum + item.spend, 0) || 1;
     let cursor = 0;
     const stops = top.map((item, index) => { const start = cursor; cursor += item.spend / topTotal * 100; return `${CHART_COLORS[index]} ${start}% ${cursor}%`; }).join(", ");
     $("dashboardTopItems").innerHTML = top.length ? `<div class="donut" style="background:conic-gradient(${stops})"><span>${top.length}<small>items</small></span></div><div class="donut-legend">${top.map((item, index) => `<div><i style="background:${CHART_COLORS[index]}"></i><span>${escapeHtml(item.name)}</span><strong>${money(item.spend)}</strong></div>`).join("")}</div>` : `<p class="empty">Graph ke liye data available nahi.</p>`;
-    const all = totals(state.entries), paid = all.paid, remaining = Math.max(0, all.total - paid);
+    const all = totals(currentRows), paid = all.paid, remaining = Math.max(0, all.total - paid);
     const paidPercent = all.total ? Math.min(100, paid / all.total * 100) : 0;
     $("accountHealthChart").innerHTML = `<div class="health-number"><strong>${paidPercent.toFixed(0)}%</strong><span>purchases paid</span></div><div class="health-track"><i style="width:${paidPercent}%"></i></div><div class="health-values"><span><i class="paid-dot"></i>Paid <strong>${money(paid)}</strong></span><span><i class="due-dot"></i>Baqaya <strong>${money(remaining)}</strong></span></div>`;
+    document.querySelectorAll("[data-dashboard-days]").forEach((button) => button.classList.toggle("active", String(state.dashboardDays) === button.dataset.dashboardDays));
   }
 
   function persistOfflineDrafts() {
@@ -688,6 +711,7 @@
       $("profileModalInitial").textContent = $("deviceProfileName").value.trim().charAt(0).toUpperCase() || "?";
     });
     $("syncDraftsBtn").addEventListener("click", syncOfflineDrafts);
+    document.querySelectorAll("[data-dashboard-days]").forEach((button) => button.addEventListener("click", () => { state.dashboardDays = button.dataset.dashboardDays === "all" ? "all" : Number(button.dataset.dashboardDays); renderVisualDashboard(); }));
     document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
     document.querySelectorAll("[data-open-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.openView)));
     $("entryForm").addEventListener("submit", saveEntry);
@@ -745,7 +769,7 @@
     $("ledgerDate").value = today();
     updateInstallButtons();
     renderOfflineDrafts();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=9").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=10").catch(console.error);
     restoreSession();
   }
 

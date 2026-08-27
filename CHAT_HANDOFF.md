@@ -10,11 +10,16 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-visual-voice-v9.zip`
+- Latest package: `maqsood-karyana-store-dynamic-dashboard-v10.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Version 10 makes the dashboard interactive with 7D, 30D, 90D and All-time live period controls.
+- Trend total, line graph, comparison, top-item donut and paid-vs-due view all recalculate for the selected period.
+- Trend points show exact date/bucket and amount on mouse hover, keyboard focus or mobile tap.
+- Long periods automatically aggregate into weekly or monthly buckets.
 
 - Professional automatic dashboard added with a 30-day spending trend, period comparison, top-item donut chart and paid-vs-due health graph.
 - Voice item-name typing added using the browser Speech Recognition API (`ur-PK`); Chrome/Edge and microphone permission are recommended.
@@ -37,7 +42,7 @@ Future work should be performed from this OneDrive folder.
 
 ## Required Supabase Step
 
-Version 9 requires no new SQL. If version 7 SQL has already been run, deploy the new frontend files only. Existing rows remain unchanged.
+Version 10 requires no new SQL. If version 7 SQL has already been run, deploy the new frontend files only. Existing rows remain unchanged.
 
 ## Safety Rules
 
