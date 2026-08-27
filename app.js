@@ -16,6 +16,7 @@
     offlineDrafts: readStored(OFFLINE_QUEUE_KEY, []),
     items: [],
     entries: [],
+    trash: [],
     ledger: [],
     dataLoaded: false,
     deferredPrompt: null,
@@ -182,7 +183,13 @@
   }
 
   async function loadEntries() {
-    state.entries = await api("store_entries?select=*&order=purchase_date.desc,created_at.desc") || [];
+    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+    await api(`store_entries?deleted_at=lt.${encodeURIComponent(cutoff)}`, { method: "DELETE", prefer: "return=minimal" });
+    [state.entries, state.trash] = await Promise.all([
+      api("store_entries?deleted_at=is.null&select=*&order=purchase_date.desc,created_at.desc"),
+      api("store_entries?deleted_at=not.is.null&select=*&order=deleted_at.desc")
+    ]);
+    state.entries ||= []; state.trash ||= [];
     state.dataLoaded = true;
   }
 
@@ -197,6 +204,7 @@
     renderAnalytics();
     renderItems();
     renderQuickItems();
+    renderTrash();
     runAutoBackup();
   }
 
@@ -282,6 +290,32 @@
       <div class="record-row"><div><strong>${escapeHtml(row.item_name)}</strong><span>${escapeHtml(row.purchase_date)} · ${escapeHtml(row.entered_by || "Purana record")}</span></div><strong>${money(row.total_amount)}</strong></div>
     `).join("") || `<p class="empty">Abhi koi record nahi.</p>`;
     renderOfflineDrafts();
+    renderMonthlySummary();
+    renderPurchaseReminders();
+  }
+
+  function renderMonthlySummary() {
+    const now = today(); const month = now.slice(0, 7);
+    const cursor = new Date(`${month}-15T12:00:00`); cursor.setMonth(cursor.getMonth() - 1);
+    const previous = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", timeZone: "Asia/Karachi" }).format(cursor).slice(0, 7);
+    const currentRows = state.entries.filter((row) => row.purchase_date.startsWith(month));
+    const previousRows = state.entries.filter((row) => row.purchase_date.startsWith(previous));
+    const currentTotal = totals(currentRows).total, previousTotal = totals(previousRows).total;
+    const change = previousTotal ? (currentTotal - previousTotal) / previousTotal * 100 : null;
+    $("monthlySummaryTitle").textContent = new Intl.DateTimeFormat("en-PK", { month: "long", year: "numeric", timeZone: "Asia/Karachi" }).format(new Date());
+    $("monthlySummary").innerHTML = `<div><span>Total kharcha</span><strong>${money(currentTotal)}</strong></div><div><span>Entries</span><strong>${currentRows.length}</strong></div><div><span>Previous month</span><strong>${money(previousTotal)}</strong></div><div><span>Comparison</span><strong class="${change !== null && change > 0 ? "negative" : "positive"}">${change === null ? "Data nahi" : `${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}%`}</strong></div>`;
+  }
+
+  function renderPurchaseReminders() {
+    const reminders = grouped(state.entries).map((group) => {
+      const dates = [...new Set(state.entries.filter((row) => normalizedItemName(row.item_name) === group.name).map((row) => row.purchase_date))].sort();
+      if (dates.length < 2) return null;
+      const gaps = dates.slice(1).map((date, index) => Math.max(1, Math.round((new Date(date) - new Date(dates[index])) / 86400000)));
+      const average = Math.round(gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length);
+      const daysSince = Math.round((new Date(today()) - new Date(dates.at(-1))) / 86400000);
+      return { name: group.name, average, daysSince, dueIn: average - daysSince };
+    }).filter(Boolean).sort((a, b) => a.dueIn - b.dueIn).slice(0, 6);
+    $("purchaseReminders").innerHTML = reminders.map((item) => `<div class="reminder-row"><div><strong>${escapeHtml(item.name)}</strong><span>Average har ${item.average} din</span></div><b class="${item.dueIn <= 0 ? "due" : ""}">${item.dueIn <= 0 ? `${Math.abs(item.dueIn)} din overdue` : `${item.dueIn} din baad`}</b></div>`).join("") || `<p class="empty">Reminder ke liye har item ki kam az kam 2 purchase dates chahiye.</p>`;
   }
 
   function dateOffset(days) {
@@ -670,15 +704,40 @@
   }
 
   async function deleteEntry(id) {
-    if (!confirm("Ye record delete karna hai?")) return;
+    const row = state.entries.find((entry) => entry.id === id);
+    if (!row || !confirm(`Strong confirmation:\n\n${row.item_name} · ${money(row.total_amount)}\n\nYe record 30 din ke liye Trash mein move hoga. Continue?`)) return;
     try {
-      await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" });
+      await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: new Date().toISOString() }), prefer: "return=minimal" });
       await refreshAll();
-      toast("Record deleted");
+      showUndoDelete(id);
     } catch (error) {
       console.error(error);
       toast("Delete failed");
     }
+  }
+
+  function showUndoDelete(id) {
+    const bar = $("undoToast"); bar.dataset.entryId = id; bar.classList.remove("hidden");
+    clearTimeout(showUndoDelete.timer); showUndoDelete.timer = setTimeout(() => bar.classList.add("hidden"), 10000);
+  }
+
+  async function restoreEntry(id) {
+    try { await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: null }), prefer: "return=minimal" }); $("undoToast").classList.add("hidden"); await refreshAll(); toast("Record restore ho gaya"); } catch { toast("Restore failed"); }
+  }
+
+  async function permanentlyDeleteEntry(id) {
+    const row = state.trash.find((entry) => entry.id === id); if (!row) return;
+    const age = Date.now() - new Date(row.deleted_at).getTime();
+    if (age < 30 * 86400000) return toast("Permanent delete 30 din baad available hoga");
+    if (!confirm(`PERMANENT DELETE:\n\n${row.item_name} · ${money(row.total_amount)}\n\nYe action undo nahi ho sakta. Delete forever?`)) return;
+    try { await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }); await refreshAll(); toast("Record permanently deleted"); } catch { toast("Permanent delete failed"); }
+  }
+
+  function renderTrash() {
+    $("trashCount").textContent = `${state.trash.length} records`;
+    $("trashList").innerHTML = state.trash.map((row) => { const daysLeft = Math.max(0, 30 - Math.floor((Date.now() - new Date(row.deleted_at)) / 86400000)); return `<div class="record-row"><div><strong>${escapeHtml(row.item_name)}</strong><span>${money(row.total_amount)} · ${daysLeft} days left</span></div><div class="trash-actions"><button class="row-action" data-restore-entry="${row.id}">Restore</button><button class="row-action danger" data-permanent-entry="${row.id}" ${daysLeft > 0 ? "disabled" : ""}>Delete forever</button></div></div>`; }).join("") || `<p class="empty">Trash empty hai.</p>`;
+    $("trashList").querySelectorAll("[data-restore-entry]").forEach((button) => button.addEventListener("click", () => restoreEntry(button.dataset.restoreEntry)));
+    $("trashList").querySelectorAll("[data-permanent-entry]").forEach((button) => button.addEventListener("click", () => permanentlyDeleteEntry(button.dataset.permanentEntry)));
   }
 
   function dateRangeRows(fromId, toId) {
@@ -747,6 +806,28 @@
     return "\ufeff" + [headers, ...values].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
   }
 
+  function backupExcelWorkbook() {
+    const xml = (value) => escapeHtml(value).replace(/'/g, "&apos;");
+    const months = [...new Set(state.entries.map((row) => row.purchase_date.slice(0, 7)))].sort().reverse();
+    const sheets = months.map((month) => { const rows = state.entries.filter((row) => row.purchase_date.startsWith(month)); const body = rows.map((row) => `<Row><Cell><Data ss:Type="String">${xml(savedDayTime(row))}</Data></Cell><Cell><Data ss:Type="String">${xml(row.item_name)}</Data></Cell><Cell><Data ss:Type="Number">${Number(row.total_amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.entered_by || "Purana record")}</Data></Cell></Row>`).join(""); return `<Worksheet ss:Name="${month}"><Table><Row><Cell><Data ss:Type="String">Date Day Time</Data></Cell><Cell><Data ss:Type="String">Item</Data></Cell><Cell><Data ss:Type="String">Total</Data></Cell><Cell><Data ss:Type="String">Entered By</Data></Cell></Row>${body}</Table></Worksheet>`; }).join("");
+    return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${sheets || `<Worksheet ss:Name="History"><Table/></Worksheet>`}</Workbook>`;
+  }
+
+  function backupPdfBlob() {
+    const clean = (value) => String(value).normalize("NFKD").replace(/[^\x20-\x7E]/g, "?").replace(/([\\()])/g, "\\$1");
+    const lines = ["Maqsood Karyana Store - Complete History", `Generated: ${new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi" })}`, `Total entries: ${state.entries.length}   Total: ${money(totals(state.entries).total)}`, "", ...state.entries.map((row) => `${savedDayTime(row)} | ${row.item_name} | ${money(row.total_amount)} | ${row.entered_by || "Purana record"}`)];
+    const wrapped = lines.flatMap((line) => { const text = clean(line); const parts = []; for (let i = 0; i < text.length; i += 92) parts.push(text.slice(i, i + 92)); return parts.length ? parts : [""]; });
+    const pages = []; for (let i = 0; i < wrapped.length; i += 48) pages.push(wrapped.slice(i, i + 48));
+    const objects = [null, "<< /Type /Catalog /Pages 2 0 R >>", ""];
+    const fontId = 3 + pages.length * 2; const pageIds = [];
+    pages.forEach((page, index) => { const pageId = 3 + index * 2, contentId = pageId + 1; pageIds.push(`${pageId} 0 R`); const commands = `BT /F1 9 Tf 38 805 Td 11 TL ${page.map((line, lineIndex) => `${lineIndex ? "T* " : ""}(${line}) Tj`).join(" ")} ET`; objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`; objects[contentId] = `<< /Length ${commands.length} >>\nstream\n${commands}\nendstream`; });
+    objects[2] = `<< /Type /Pages /Kids [${pageIds.join(" ")}] /Count ${pages.length} >>`; objects[fontId] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+    let pdf = "%PDF-1.4\n", offsets = [0]; for (let id = 1; id < objects.length; id++) { offsets[id] = pdf.length; pdf += `${id} 0 obj\n${objects[id]}\nendobj\n`; } const xref = pdf.length; pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`; for (let id = 1; id < objects.length; id++) pdf += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`; pdf += `trailer << /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    return new Blob([pdf], { type: "application/pdf" });
+  }
+
+  async function writeBackupFile(handle, name, data) { const file = await handle.getFileHandle(name, { create: true }); const writable = await file.createWritable(); await writable.write(data); await writable.close(); }
+
   function backupDb() {
     return new Promise((resolve, reject) => { const request = indexedDB.open("maqsood-karyana-backup", 1); request.onupgradeneeded = () => request.result.createObjectStore("handles"); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   }
@@ -776,8 +857,9 @@
       let permission = await handle.queryPermission({ mode: "readwrite" });
       if (permission !== "granted" && force) permission = await handle.requestPermission({ mode: "readwrite" });
       if (permission !== "granted") return updateBackupStatus();
-      const file = await handle.getFileHandle("maqsood-karyana-history-auto.csv", { create: true });
-      const writable = await file.createWritable(); await writable.write(backupCsv()); await writable.close();
+      await writeBackupFile(handle, "maqsood-karyana-history-auto.csv", backupCsv());
+      await writeBackupFile(handle, "maqsood-karyana-history-auto.pdf", backupPdfBlob());
+      await writeBackupFile(handle, "maqsood-karyana-monthly-workbook.xls", new Blob([backupExcelWorkbook()], { type: "application/vnd.ms-excel" }));
       localStorage.removeItem(BACKUP_DUE_KEY); localStorage.setItem(BACKUP_LAST_KEY, new Date().toISOString());
       await updateBackupStatus(); toast("OneDrive history backup save ho gaya");
     } catch (error) { console.error(error); toast("Auto backup save nahi hua. Folder permission check karein."); }
@@ -824,6 +906,7 @@
     $("ledgerForm").addEventListener("submit", saveLedger);
     $("connectBackupFolder").addEventListener("click", connectBackupFolder);
     $("backupNowBtn").addEventListener("click", () => runAutoBackup(true));
+    $("undoDeleteBtn").addEventListener("click", () => restoreEntry($("undoToast").dataset.entryId));
     document.querySelectorAll("[data-install-app]").forEach((button) => button.addEventListener("click", async () => {
       if (!state.deferredPrompt) return toast("Browser menu se Install App choose karein");
       state.deferredPrompt.prompt();
@@ -871,7 +954,7 @@
     updateEntryClock(); setInterval(updateEntryClock, 30000);
     updateBackupStatus(); runAutoBackup(); setInterval(() => runAutoBackup(), 60000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) runAutoBackup(); });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=15").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=16").catch(console.error);
     restoreSession();
   }
 

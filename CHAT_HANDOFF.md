@@ -10,11 +10,14 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-history-backup-clean-v15.zip`
+- Latest package: `maqsood-karyana-store-summary-trash-backup-v16.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Version 16 adds monthly summary, repeat-purchase reminders, rolling CSV/PDF/month-sheet Excel backup, and 30-day Trash with 10-second Undo and Restore.
+- `v16_add_trash.sql` is required once; it only adds nullable `deleted_at`.
 
 - Version 15 moves OneDrive backup controls to History and removes Paid vs Baqaya comparison UI, Payment filter and Total Baki quick insight.
 - Khata ledger records and existing Supabase purchase data remain unchanged.
@@ -62,7 +65,7 @@ Future work should be performed from this OneDrive folder.
 
 ## Required Supabase Step
 
-Version 11 requires running `v11_add_entered_at.sql` once to add nullable `entered_at` with a default for new rows. This is additive: existing rows are not deleted or replaced.
+Version 16 requires that both `v11_add_entered_at.sql` and `v16_add_trash.sql` have been run once. Both migrations are additive.
 
 ## Safety Rules
 

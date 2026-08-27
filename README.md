@@ -1,5 +1,13 @@
 # Maqsood Karyana Store
 
+## Version 16 update
+
+- Monthly summary shows current total, entry count, previous-month total and percentage comparison.
+- Frequently purchased reminders estimate average repeat interval from at least two distinct purchase dates.
+- OneDrive rolling backup now writes complete CSV, complete PDF and a month-sheet Excel-readable `.xls` workbook.
+- Purchase deletion is soft-delete to 30-day Trash. A 10-second Undo appears immediately, Restore remains available in History, and expired Trash is permanently purged after 30 days.
+- Run `v16_add_trash.sql` once before deploying the frontend. Existing rows remain active.
+
 ## Version 15 update
 
 - OneDrive History Auto Backup panel moved from Overview to History.

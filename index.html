@@ -9,10 +9,11 @@
   <link rel="manifest" href="manifest.webmanifest?v=6">
   <link rel="icon" href="app-icon-192.png?v=6">
   <link rel="apple-touch-icon" href="app-icon-192.png?v=6">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="undoToast" class="undo-toast hidden" role="status"><span>Record Trash mein move ho gaya.</span><button id="undoDeleteBtn" type="button">Undo</button></div>
 
   <main id="loginScreen" class="login-screen">
     <section class="login-brand">
@@ -91,6 +92,10 @@
             <div id="trendComparison" class="trend-comparison">Data calculate ho raha hai…</div>
           </article>
           <article class="panel chart-panel"><div class="panel-head"><div><p class="eyebrow">Spend mix</p><h3>Top saman</h3></div></div><div id="dashboardTopItems" class="donut-layout"></div></article>
+        </section>
+        <section class="summary-reminder-grid">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Monthly summary</p><h3 id="monthlySummaryTitle">Is month ka kharcha</h3></div></div><div id="monthlySummary" class="monthly-summary"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Smart reminders</p><h3>Dobara khareedne ka waqt</h3></div></div><div id="purchaseReminders" class="reminder-list"></div></article>
         </section>
         <article id="dashboardDrilldown" class="panel drilldown-panel">
           <div class="panel-head"><div><p class="eyebrow">Interactive drill-down</p><h3 id="drilldownTitle">Graph ya item par click karke insight dekhein</h3></div><button id="clearDashboardFilter" class="secondary hidden" type="button">Clear selection</button></div>
@@ -190,6 +195,7 @@
         </div>
         <div id="historySummary" class="summary-strip"></div>
         <div id="historyTable" class="table-wrap panel"></div>
+        <article class="panel trash-panel"><div class="panel-head"><div><p class="eyebrow">30-day safety</p><h3>Trash</h3></div><span id="trashCount">0 records</span></div><div id="trashList" class="record-list"></div></article>
       </section>
 
       <section id="analyticsView" class="view hidden">
@@ -239,6 +245,6 @@
   </div>
 
   <script src="config.js?v=8"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
