@@ -1,5 +1,15 @@
 # Maqsood Karyana Store
 
+## Version 17 update
+
+- Two separately installable packages: Simple User App and `ADMIN Maqsood Karyana Store`.
+- Simple User password is `1234`. Existing owner password remains the Admin password.
+- Dashboard, Analytics, Khata, Backup, Trash, amount filters and User Activity are Admin-only.
+- Smart Reminders removed.
+- Simple users retain Add Saman, basic History and Items.
+- Edit/delete/restore and Khata actions are written to the Admin-only activity log with profile name and Pakistan time.
+- Run `v17_admin_roles_audit.sql` once after the earlier v11 and v16 migrations.
+
 ## Version 16 update
 
 - Monthly summary shows current total, entry count, previous-month total and percentage comparison.

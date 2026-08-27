@@ -134,7 +134,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .drilldown-records button { display: grid; grid-template-columns: auto 1fr auto; gap: 9px; padding: 9px; border: 1px solid var(--line); border-radius: 6px; background: white; text-align: left; }
 .drilldown-records span { color: var(--muted); font-size: 11px; }
 .drilldown-records b { color: var(--green-700); }
-.summary-reminder-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.summary-reminder-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
 .monthly-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
 .monthly-summary > div { padding: 12px; border-radius: 7px; background: var(--canvas); }
 .monthly-summary span { display: block; color: var(--muted); font-size: 11px; }
@@ -225,6 +225,8 @@ th { position: sticky; top: 0; background: #eaf3ee; color: var(--green-800); }
 .bottom-nav .nav-button { min-height: 52px; display: grid; place-items: center; gap: 2px; background: transparent; color: rgba(255,255,255,.76); font-size: 10px; }
 .bottom-nav .nav-button span { font-size: 20px; }
 .bottom-nav .nav-button.active { background: rgba(255,255,255,.12); color: white; }
+.simple-mode .bottom-nav { grid-template-columns: repeat(3, 1fr); }
+.admin-mode .bottom-nav { grid-template-columns: repeat(6, 1fr); }
 .toast { position: fixed; z-index: 100; left: 50%; bottom: 88px; max-width: calc(100vw - 32px); padding: 11px 16px; border-radius: 6px; background: #17251f; color: white; opacity: 0; pointer-events: none; transform: translate(-50%, 15px); transition: .2s; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .empty { padding: 20px; color: var(--muted); text-align: center; }

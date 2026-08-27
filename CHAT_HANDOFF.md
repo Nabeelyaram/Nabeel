@@ -10,11 +10,17 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-summary-trash-backup-v16.zip`
+- Latest packages: `maqsood-karyana-store-simple-user-v17.zip` and `maqsood-karyana-store-admin-v17.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Version 17 splits the installable frontend into Simple User and ADMIN packages using separate forced-mode files and PWA manifests.
+- Simple password is `1234`; Admin continues using the existing owner password.
+- Server RLS restricts Dashboard-side data operations: Ledger, permanent deletes, deleted-row access and audit reads are Admin-only.
+- User edits/deletes and Admin restore/Khata actions are logged in `store_audit` with device profile and timestamp.
+- Smart Reminders removed; amount filters remain Admin-only.
 
 - Version 16 adds monthly summary, repeat-purchase reminders, rolling CSV/PDF/month-sheet Excel backup, and 30-day Trash with 10-second Undo and Restore.
 - `v16_add_trash.sql` is required once; it only adds nullable `deleted_at`.
@@ -65,7 +71,7 @@ Future work should be performed from this OneDrive folder.
 
 ## Required Supabase Step
 
-Version 16 requires that both `v11_add_entered_at.sql` and `v16_add_trash.sql` have been run once. Both migrations are additive.
+Version 17 requires `v11_add_entered_at.sql`, `v16_add_trash.sql`, then `v17_admin_roles_audit.sql` once each. All are additive.
 
 ## Safety Rules
 

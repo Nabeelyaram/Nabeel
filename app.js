@@ -2,7 +2,10 @@
   "use strict";
 
   const config = window.MAQSOOD_CONFIG || {};
-  const SESSION_KEY = "maqsood-karyana-session";
+  const FORCED_MODE = window.MAQSOOD_APP_MODE;
+  const APP_MODE = FORCED_MODE === "admin" || (!FORCED_MODE && new URLSearchParams(location.search).get("mode") === "admin") ? "admin" : "user";
+  const IS_ADMIN = APP_MODE === "admin";
+  const SESSION_KEY = `maqsood-karyana-session-${APP_MODE}`;
   const PROFILE_KEY = "maqsood-karyana-profile";
   const OFFLINE_QUEUE_KEY = "maqsood-karyana-offline-drafts";
   const BACKUP_DUE_KEY = "maqsood-karyana-backup-due";
@@ -17,6 +20,7 @@
     items: [],
     entries: [],
     trash: [],
+    activity: [],
     ledger: [],
     dataLoaded: false,
     deferredPrompt: null,
@@ -81,6 +85,16 @@
     $("headerDate").textContent = new Intl.DateTimeFormat("en-PK", { dateStyle: "medium", timeZone: "Asia/Karachi" }).format(new Date());
     updateProfileUi();
     renderOfflineDrafts();
+    applyModeUi();
+  }
+
+  function applyModeUi() {
+    document.body.classList.toggle("admin-mode", IS_ADMIN); document.body.classList.toggle("simple-mode", !IS_ADMIN);
+    document.querySelectorAll("[data-admin-only]").forEach((element) => element.classList.toggle("hidden", !IS_ADMIN));
+    const name = IS_ADMIN ? "ADMIN Maqsood Karyana Store" : "Maqsood Karyana Store";
+    document.title = name; $("loginAppTitle").textContent = name; $("headerAppTitle").textContent = name;
+    if (IS_ADMIN && !FORCED_MODE) document.querySelector('link[rel="manifest"]').href = "manifest-admin.webmanifest?v=17";
+    if (!IS_ADMIN && !$('appScreen').classList.contains('hidden')) showView("entry");
   }
 
   function showLogin() {
@@ -92,7 +106,7 @@
     event.preventDefault();
     if (!configured) return $("setupMessage").classList.remove("hidden");
     try {
-      const result = await api("rpc/store_login", { method: "POST", body: JSON.stringify({ input_password: $("loginPassword").value }) });
+      const result = await api("rpc/store_login_role", { method: "POST", body: JSON.stringify({ input_password: $("loginPassword").value, input_role: APP_MODE }) });
       if (!result?.authenticated) return toast("Wrong password");
       state.token = result.session_token;
       localStorage.setItem(SESSION_KEY, state.token);
@@ -116,7 +130,7 @@
       return;
     }
     try {
-      const result = await api("rpc/store_restore_session", { method: "POST", body: "{}" });
+      const result = await api("rpc/store_restore_session_role", { method: "POST", body: JSON.stringify({ expected_role: APP_MODE }) });
       if (!result?.authenticated) throw new Error("Expired");
       showApp();
       ensureProfile();
@@ -163,12 +177,14 @@
   }
 
   function showView(name) {
+    if (!IS_ADMIN && ["dashboard", "analytics", "activity"].includes(name)) name = "entry";
     document.querySelectorAll(".view").forEach((view) => view.classList.toggle("hidden", view.id !== `${name}View`));
     document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (name === "history") renderHistory();
     if (name === "analytics") renderAnalytics();
     if (name === "items") renderItems();
+    if (name === "activity" && IS_ADMIN) renderActivity();
   }
 
   async function loadItems() {
@@ -183,28 +199,27 @@
   }
 
   async function loadEntries() {
-    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
-    await api(`store_entries?deleted_at=lt.${encodeURIComponent(cutoff)}`, { method: "DELETE", prefer: "return=minimal" });
-    [state.entries, state.trash] = await Promise.all([
-      api("store_entries?deleted_at=is.null&select=*&order=purchase_date.desc,created_at.desc"),
-      api("store_entries?deleted_at=not.is.null&select=*&order=deleted_at.desc")
-    ]);
+    if (IS_ADMIN) { const cutoff = new Date(Date.now() - 30 * 86400000).toISOString(); await api(`store_entries?deleted_at=lt.${encodeURIComponent(cutoff)}`, { method: "DELETE", prefer: "return=minimal" }); }
+    state.entries = await api("store_entries?deleted_at=is.null&select=*&order=purchase_date.desc,created_at.desc") || [];
+    state.trash = IS_ADMIN ? await api("store_entries?deleted_at=not.is.null&select=*&order=deleted_at.desc") || [] : [];
     state.entries ||= []; state.trash ||= [];
     state.dataLoaded = true;
   }
 
   async function loadLedger() {
-    state.ledger = await api("store_ledger?select=*&order=entry_date.desc,created_at.desc") || [];
+    state.ledger = IS_ADMIN ? await api("store_ledger?select=*&order=entry_date.desc,created_at.desc") || [] : [];
   }
 
+  async function loadActivity() { state.activity = IS_ADMIN ? await api("store_audit?select=*&order=occurred_at.desc&limit=500") || [] : []; }
+
   async function refreshAll() {
-    await Promise.all([loadItems(), loadEntries(), loadLedger()]);
+    await Promise.all([loadItems(), loadEntries(), loadLedger(), loadActivity()]);
     renderDashboard();
     renderHistory();
     renderAnalytics();
     renderItems();
     renderQuickItems();
-    renderTrash();
+    if (IS_ADMIN) { renderTrash(); renderActivity(); }
     runAutoBackup();
   }
 
@@ -291,7 +306,6 @@
     `).join("") || `<p class="empty">Abhi koi record nahi.</p>`;
     renderOfflineDrafts();
     renderMonthlySummary();
-    renderPurchaseReminders();
   }
 
   function renderMonthlySummary() {
@@ -304,18 +318,6 @@
     const change = previousTotal ? (currentTotal - previousTotal) / previousTotal * 100 : null;
     $("monthlySummaryTitle").textContent = new Intl.DateTimeFormat("en-PK", { month: "long", year: "numeric", timeZone: "Asia/Karachi" }).format(new Date());
     $("monthlySummary").innerHTML = `<div><span>Total kharcha</span><strong>${money(currentTotal)}</strong></div><div><span>Entries</span><strong>${currentRows.length}</strong></div><div><span>Previous month</span><strong>${money(previousTotal)}</strong></div><div><span>Comparison</span><strong class="${change !== null && change > 0 ? "negative" : "positive"}">${change === null ? "Data nahi" : `${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}%`}</strong></div>`;
-  }
-
-  function renderPurchaseReminders() {
-    const reminders = grouped(state.entries).map((group) => {
-      const dates = [...new Set(state.entries.filter((row) => normalizedItemName(row.item_name) === group.name).map((row) => row.purchase_date))].sort();
-      if (dates.length < 2) return null;
-      const gaps = dates.slice(1).map((date, index) => Math.max(1, Math.round((new Date(date) - new Date(dates[index])) / 86400000)));
-      const average = Math.round(gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length);
-      const daysSince = Math.round((new Date(today()) - new Date(dates.at(-1))) / 86400000);
-      return { name: group.name, average, daysSince, dueIn: average - daysSince };
-    }).filter(Boolean).sort((a, b) => a.dueIn - b.dueIn).slice(0, 6);
-    $("purchaseReminders").innerHTML = reminders.map((item) => `<div class="reminder-row"><div><strong>${escapeHtml(item.name)}</strong><span>Average har ${item.average} din</span></div><b class="${item.dueIn <= 0 ? "due" : ""}">${item.dueIn <= 0 ? `${Math.abs(item.dueIn)} din overdue` : `${item.dueIn} din baad`}</b></div>`).join("") || `<p class="empty">Reminder ke liye har item ki kam az kam 2 purchase dates chahiye.</p>`;
   }
 
   function dateOffset(days) {
@@ -483,6 +485,7 @@
 
   async function saveLedger(event) {
     event.preventDefault();
+    const auditAmount = Number($("ledgerAmount").value || 0), auditType = $("ledgerType").value;
     try {
       if ($("ledgerType").value === "opening_balance") {
         await api("store_ledger?entry_type=eq.opening_balance", { method: "DELETE", prefer: "return=minimal" });
@@ -497,6 +500,7 @@
       $("ledgerNote").value = "";
       await loadLedger();
       renderDashboard();
+      await logActivity("khata_save", "ledger", null, { type: auditType, amount: auditAmount });
       toast("Khata entry save ho gayi");
     } catch (error) {
       console.error(error);
@@ -508,6 +512,7 @@
     if (!confirm("Ye khata entry delete karni hai?")) return;
     try {
       await api(`store_ledger?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" });
+      await logActivity("khata_delete", "ledger", id, {});
       await loadLedger();
       renderDashboard();
       toast("Khata entry deleted");
@@ -577,7 +582,7 @@
       baseRow.entered_by = state.profile;
       baseRow.client_ref = clientRef();
       baseRow.entered_at = new Date().toISOString();
-    }
+    } else baseRow.modified_by = state.profile;
     if (!navigator.onLine) return queueOfflineEntry(baseRow);
     try {
       const item = await ensureItem(name);
@@ -586,6 +591,7 @@
         item_id: item?.id || null,
       };
       await api(id ? `store_entries?id=eq.${encodeURIComponent(id)}` : "store_entries", { method: id ? "PATCH" : "POST", body: JSON.stringify(row), prefer: "return=minimal" });
+      if (id) await logActivity("entry_edit", "purchase", id, { item: name, amount: total, date: purchaseDate });
       clearEntry();
       await refreshAll();
       showView("dashboard");
@@ -707,7 +713,8 @@
     const row = state.entries.find((entry) => entry.id === id);
     if (!row || !confirm(`Strong confirmation:\n\n${row.item_name} · ${money(row.total_amount)}\n\nYe record 30 din ke liye Trash mein move hoga. Continue?`)) return;
     try {
-      await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: new Date().toISOString() }), prefer: "return=minimal" });
+      await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: new Date().toISOString(), modified_by: state.profile }), prefer: "return=minimal" });
+      await logActivity("entry_delete", "purchase", id, { item: row.item_name, amount: row.total_amount });
       await refreshAll();
       showUndoDelete(id);
     } catch (error) {
@@ -722,7 +729,7 @@
   }
 
   async function restoreEntry(id) {
-    try { await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: null }), prefer: "return=minimal" }); $("undoToast").classList.add("hidden"); await refreshAll(); toast("Record restore ho gaya"); } catch { toast("Restore failed"); }
+    try { await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: null, modified_by: state.profile }), prefer: "return=minimal" }); await logActivity("entry_restore", "purchase", id, {}); $("undoToast").classList.add("hidden"); await refreshAll(); toast("Record restore ho gaya"); } catch { toast("Restore failed"); }
   }
 
   async function permanentlyDeleteEntry(id) {
@@ -730,7 +737,7 @@
     const age = Date.now() - new Date(row.deleted_at).getTime();
     if (age < 30 * 86400000) return toast("Permanent delete 30 din baad available hoga");
     if (!confirm(`PERMANENT DELETE:\n\n${row.item_name} · ${money(row.total_amount)}\n\nYe action undo nahi ho sakta. Delete forever?`)) return;
-    try { await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }); await refreshAll(); toast("Record permanently deleted"); } catch { toast("Permanent delete failed"); }
+    try { await logActivity("entry_permanent_delete", "purchase", id, { item: row.item_name, amount: row.total_amount }); await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }); await refreshAll(); toast("Record permanently deleted"); } catch { toast("Permanent delete failed"); }
   }
 
   function renderTrash() {
@@ -738,6 +745,18 @@
     $("trashList").innerHTML = state.trash.map((row) => { const daysLeft = Math.max(0, 30 - Math.floor((Date.now() - new Date(row.deleted_at)) / 86400000)); return `<div class="record-row"><div><strong>${escapeHtml(row.item_name)}</strong><span>${money(row.total_amount)} · ${daysLeft} days left</span></div><div class="trash-actions"><button class="row-action" data-restore-entry="${row.id}">Restore</button><button class="row-action danger" data-permanent-entry="${row.id}" ${daysLeft > 0 ? "disabled" : ""}>Delete forever</button></div></div>`; }).join("") || `<p class="empty">Trash empty hai.</p>`;
     $("trashList").querySelectorAll("[data-restore-entry]").forEach((button) => button.addEventListener("click", () => restoreEntry(button.dataset.restoreEntry)));
     $("trashList").querySelectorAll("[data-permanent-entry]").forEach((button) => button.addEventListener("click", () => permanentlyDeleteEntry(button.dataset.permanentEntry)));
+  }
+
+  async function logActivity(action, entity, entityId, details) {
+    const record = { actor: state.profile || "Unknown", action, entity, entity_id: entityId || null, details: details || {}, occurred_at: new Date().toISOString() };
+    try { await api("store_audit", { method: "POST", body: JSON.stringify(record), prefer: "return=minimal" }); if (IS_ADMIN) state.activity.unshift(record); } catch (error) { console.error("Activity log failed", error); }
+  }
+
+  function renderActivity() {
+    if (!IS_ADMIN || !$("activityTable")) return;
+    const edits = state.activity.filter((row) => row.action === "entry_edit").length, deletes = state.activity.filter((row) => row.action === "entry_delete").length;
+    $("activitySummary").innerHTML = `<div><span>Total actions</span><strong>${state.activity.length}</strong></div><div><span>Edits</span><strong>${edits}</strong></div><div><span>Deletes</span><strong>${deletes}</strong></div>`;
+    $("activityTable").innerHTML = state.activity.length ? `<table><thead><tr><th>Date & time</th><th>User</th><th>Action</th><th>Record</th><th>Details</th></tr></thead><tbody>${state.activity.map((row) => `<tr><td>${escapeHtml(new Intl.DateTimeFormat("en-PK", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Karachi" }).format(new Date(row.occurred_at)))}</td><td>${escapeHtml(row.actor)}</td><td>${escapeHtml(row.action.replace(/_/g, " "))}</td><td>${escapeHtml(row.entity)}</td><td>${escapeHtml(Object.entries(row.details || {}).map(([key,value]) => `${key}: ${value}`).join(" · ") || "-")}</td></tr>`).join("")}</tbody></table>` : `<p class="empty">Abhi koi edit/delete activity nahi.</p>`;
   }
 
   function dateRangeRows(fromId, toId) {
@@ -841,6 +860,7 @@
   }
 
   function scheduleAutoBackup() {
+    if (!IS_ADMIN) return;
     localStorage.setItem(BACKUP_DUE_KEY, String(Date.now() + 3600000));
     clearTimeout(scheduleAutoBackup.timer);
     scheduleAutoBackup.timer = setTimeout(() => runAutoBackup(), 3600000);
@@ -848,6 +868,7 @@
   }
 
   async function runAutoBackup(force = false) {
+    if (!IS_ADMIN) return;
     if (!state.dataLoaded) return;
     const due = Number(localStorage.getItem(BACKUP_DUE_KEY) || 0);
     if (!force && (!due || Date.now() < due)) { if (due) { clearTimeout(scheduleAutoBackup.timer); scheduleAutoBackup.timer = setTimeout(() => runAutoBackup(), Math.min(2147483647, due - Date.now())); } return updateBackupStatus(); }
@@ -866,6 +887,7 @@
   }
 
   async function updateBackupStatus() {
+    if (!IS_ADMIN) return;
     const status = $("backupStatus"); if (!status) return;
     const handle = await getBackupHandle().catch(() => null); const due = Number(localStorage.getItem(BACKUP_DUE_KEY) || 0); const last = localStorage.getItem(BACKUP_LAST_KEY);
     if (!handle) return status.textContent = "Pehli dafa OneDrive mein backup folder select karein.";
@@ -941,6 +963,7 @@
   }
 
   function init() {
+    applyModeUi();
     bindEvents();
     clearEntry();
     $("filterFrom").value = "";

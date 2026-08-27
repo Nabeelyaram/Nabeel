@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=6">
   <link rel="icon" href="app-icon-192.png?v=6">
   <link rel="apple-touch-icon" href="app-icon-192.png?v=6">
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -19,7 +19,7 @@
     <section class="login-brand">
       <img src="app-icon-192.png" alt="Maqsood Karyana Store logo">
       <p class="eyebrow">Daily household register</p>
-      <h1>Maqsood Karyana Store</h1>
+      <h1 id="loginAppTitle">Maqsood Karyana Store</h1>
       <p>Ghar ke rozana saman aur payment ka asan record</p>
       <button id="loginInstallBtn" class="secondary install-action hidden" type="button" data-install-app>Install App</button>
     </section>
@@ -43,7 +43,7 @@
       <div class="brand-lockup">
         <img src="app-icon-192.png" alt="">
         <div>
-          <strong>Maqsood Karyana Store</strong>
+          <strong id="headerAppTitle">Maqsood Karyana Store</strong>
           <span id="headerDate"></span>
         </div>
       </div>
@@ -64,15 +64,16 @@
     </header>
 
     <nav class="desktop-nav" aria-label="Main navigation">
-      <button class="nav-button active" data-view="dashboard">Overview</button>
+      <button class="nav-button active" data-view="dashboard" data-admin-only>Overview</button>
       <button class="nav-button" data-view="entry">Add Saman</button>
       <button class="nav-button" data-view="history">History</button>
-      <button class="nav-button" data-view="analytics">Analytics</button>
+      <button class="nav-button" data-view="analytics" data-admin-only>Analytics</button>
+      <button class="nav-button" data-view="activity" data-admin-only>User Activity</button>
       <button class="nav-button" data-view="items">Items</button>
     </nav>
 
     <section class="app-content">
-      <section id="dashboardView" class="view">
+      <section id="dashboardView" class="view" data-admin-only>
         <div class="page-heading">
           <div><p class="eyebrow">Overview</p><h2>Aaj ka hisaab</h2></div>
           <button class="primary" type="button" data-open-view="entry">+ Add Saman</button>
@@ -95,7 +96,6 @@
         </section>
         <section class="summary-reminder-grid">
           <article class="panel"><div class="panel-head"><div><p class="eyebrow">Monthly summary</p><h3 id="monthlySummaryTitle">Is month ka kharcha</h3></div></div><div id="monthlySummary" class="monthly-summary"></div></article>
-          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Smart reminders</p><h3>Dobara khareedne ka waqt</h3></div></div><div id="purchaseReminders" class="reminder-list"></div></article>
         </section>
         <article id="dashboardDrilldown" class="panel drilldown-panel">
           <div class="panel-head"><div><p class="eyebrow">Interactive drill-down</p><h3 id="drilldownTitle">Graph ya item par click karke insight dekhein</h3></div><button id="clearDashboardFilter" class="secondary hidden" type="button">Clear selection</button></div>
@@ -126,7 +126,7 @@
             </div>
           </article>
         </div>
-        <article class="panel ledger-panel">
+        <article class="panel ledger-panel" data-admin-only>
           <div class="panel-head">
             <div><p class="eyebrow">Khata</p><h3>Baqaya aur jama record</h3></div>
           </div>
@@ -181,7 +181,7 @@
           <div><p class="eyebrow">Records</p><h2>Purchase history</h2></div>
           <div class="button-row"><button id="exportCsvBtn" class="secondary">CSV</button><button id="printBtn" class="secondary">Print / PDF</button></div>
         </div>
-        <article class="panel backup-panel">
+        <article class="panel backup-panel" data-admin-only>
           <div><p class="eyebrow">OneDrive safety backup</p><h3>History auto backup</h3><p id="backupStatus">Backup folder connect nahi hai.</p></div>
           <div class="button-row"><button id="connectBackupFolder" class="primary" type="button">OneDrive folder select karein</button><button id="backupNowBtn" class="secondary" type="button">Backup now</button></div>
         </article>
@@ -189,16 +189,16 @@
           <label><span>From</span><input id="filterFrom" type="date"></label>
           <label><span>To</span><input id="filterTo" type="date"></label>
           <label><span>Item</span><input id="filterItem" list="itemOptions" placeholder="All items"></label>
-          <label><span>Minimum amount</span><input id="filterAmountMin" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Rs 0"></label>
-          <label><span>Maximum amount</span><input id="filterAmountMax" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Koi limit nahi"></label>
+          <label data-admin-only><span>Minimum amount</span><input id="filterAmountMin" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Rs 0"></label>
+          <label data-admin-only><span>Maximum amount</span><input id="filterAmountMax" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Koi limit nahi"></label>
           <button id="showHistoryBtn" class="primary" type="button">Show History</button>
         </div>
         <div id="historySummary" class="summary-strip"></div>
         <div id="historyTable" class="table-wrap panel"></div>
-        <article class="panel trash-panel"><div class="panel-head"><div><p class="eyebrow">30-day safety</p><h3>Trash</h3></div><span id="trashCount">0 records</span></div><div id="trashList" class="record-list"></div></article>
+        <article class="panel trash-panel" data-admin-only><div class="panel-head"><div><p class="eyebrow">30-day safety</p><h3>Trash</h3></div><span id="trashCount">0 records</span></div><div id="trashList" class="record-list"></div></article>
       </section>
 
-      <section id="analyticsView" class="view hidden">
+      <section id="analyticsView" class="view hidden" data-admin-only>
         <div class="page-heading"><div><p class="eyebrow">Insights</p><h2>Kharchay ka tajzia</h2></div></div>
         <div class="panel filters compact">
           <label><span>From</span><input id="analyticsFrom" type="date"></label>
@@ -209,6 +209,12 @@
           <article class="panel"><h3>Sab se zyada baar khareedi gayi items</h3><div id="frequencyChart" class="bar-chart"></div></article>
           <article class="panel"><h3>Sab se zyada paisay wali items</h3><div id="spendingChart" class="bar-chart spending"></div></article>
         </div>
+      </section>
+
+      <section id="activityView" class="view hidden" data-admin-only>
+        <div class="page-heading"><div><p class="eyebrow">Admin audit</p><h2>User activity history</h2></div></div>
+        <div id="activitySummary" class="summary-strip"></div>
+        <div id="activityTable" class="table-wrap panel"></div>
       </section>
 
       <section id="itemsView" class="view hidden">
@@ -222,10 +228,11 @@
     </section>
 
     <nav class="bottom-nav" aria-label="Mobile navigation">
-      <button class="nav-button active" data-view="dashboard"><span>⌂</span>Home</button>
+      <button class="nav-button active" data-view="dashboard" data-admin-only><span>⌂</span>Home</button>
       <button class="nav-button" data-view="entry"><span>＋</span>Add</button>
       <button class="nav-button" data-view="history"><span>▤</span>History</button>
-      <button class="nav-button" data-view="analytics"><span>▥</span>Insights</button>
+      <button class="nav-button" data-view="analytics" data-admin-only><span>▥</span>Insights</button>
+      <button class="nav-button" data-view="activity" data-admin-only><span>◷</span>Activity</button>
       <button class="nav-button" data-view="items"><span>⌄</span>Items</button>
     </nav>
   </div>
@@ -244,7 +251,8 @@
     </form>
   </div>
 
+  <script src="mode.js?v=17"></script>
   <script src="config.js?v=8"></script>
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>
