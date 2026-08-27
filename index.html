@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=6">
   <link rel="icon" href="app-icon-192.png?v=6">
   <link rel="apple-touch-icon" href="app-icon-192.png?v=6">
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -82,6 +82,10 @@
           <article class="stat"><span>Entry karne wala</span><strong id="todayEnteredBy">-</strong></article>
           <article class="stat unpaid"><span>Offline drafts</span><strong id="offlineDraftCount">0</strong></article>
         </div>
+        <article class="panel backup-panel">
+          <div><p class="eyebrow">OneDrive safety backup</p><h3>History auto backup</h3><p id="backupStatus">Backup folder connect nahi hai.</p></div>
+          <div class="button-row"><button id="connectBackupFolder" class="primary" type="button">OneDrive folder select karein</button><button id="backupNowBtn" class="secondary" type="button">Backup now</button></div>
+        </article>
         <section class="visual-dashboard" aria-label="Automatic business insights">
           <article class="panel chart-panel trend-panel">
             <div class="panel-head dynamic-chart-head"><div><p class="eyebrow">Live automatic insight</p><h3 id="trendTitle">Last 30 days spending</h3></div><div class="period-controls" role="group" aria-label="Dashboard period"><button type="button" data-dashboard-days="7">7D</button><button type="button" data-dashboard-days="30" class="active">30D</button><button type="button" data-dashboard-days="90">90D</button><button type="button" data-dashboard-days="all">All</button></div></div>
@@ -155,7 +159,8 @@
         <div class="page-heading"><div><p class="eyebrow">Purchase</p><h2>Rozana saman add karein</h2></div></div>
         <form id="entryForm" class="panel form-grid">
           <input id="entryId" type="hidden">
-          <label><span>Date</span><input id="purchaseDate" type="date" required></label>
+          <input id="purchaseDate" type="hidden">
+          <div class="auto-date-card"><span>Date, day & time</span><strong id="entryCurrentDateTime">Automatic current Pakistan time</strong></div>
           <label class="span-2">
             <span>Item name</span>
             <span class="voice-field"><input id="itemName" list="itemOptions" autocomplete="off" placeholder="Example: Aata" required><button id="voiceItemBtn" class="voice-button" type="button" aria-label="Voice se item name likhein" title="Voice se item bolain">🎙 <span>Bolain</span></button></span>
@@ -240,6 +245,6 @@
   </div>
 
   <script src="config.js?v=8"></script>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>

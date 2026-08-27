@@ -135,6 +135,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .drilldown-records span { color: var(--muted); font-size: 11px; }
 .drilldown-records b { color: var(--green-700); }
 .offline-panel { margin-bottom: 16px; border-left: 4px solid var(--amber); }
+.backup-panel { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; border-left: 4px solid #3a7ca5; }
+.backup-panel p:last-child { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
 .draft-end { display: flex !important; grid-auto-flow: column; align-items: center; gap: 8px !important; }
 .ledger-panel { margin-top: 16px; }
 .ledger-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
@@ -156,6 +158,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .insight:last-child { border: 0; }
 .insight span { color: var(--muted); font-size: 12px; }
 .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.auto-date-card { display: grid; align-content: center; gap: 5px; min-height: 66px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--green-100); }
+.auto-date-card span { color: var(--muted); font-size: 11px; }
+.auto-date-card strong { color: var(--green-800); font-size: 13px; }
 .voice-field { display: grid; grid-template-columns: 1fr auto; border: 1px solid #cbd7d0; border-radius: 6px; overflow: hidden; background: white; }
 .voice-field input { border: 0; border-radius: 0; box-shadow: none; }
 .voice-button { min-width: 92px; border: 0; border-left: 1px solid var(--line); background: var(--green-100); color: var(--green-800); font-weight: 800; }
@@ -242,6 +247,7 @@ th { position: sticky; top: 0; background: #eaf3ee; color: var(--green-800); }
   .ledger-form { grid-template-columns: 1fr 1fr; }
   .ledger-form button { grid-column: 1 / -1; }
   .panel { padding: 15px; }
+  .backup-panel { align-items: flex-start; flex-direction: column; }
   .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .span-2, .span-3 { grid-column: 1 / -1; }
   .filters, .filters.compact { grid-template-columns: 1fr 1fr; }

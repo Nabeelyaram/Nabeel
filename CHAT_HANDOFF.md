@@ -10,11 +10,18 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-pictures-time-v12.zip`
+- Latest package: `maqsood-karyana-store-onedrive-auto-backup-v14.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Version 14 creates/opens `Maqsood Karyana Backups` inside the OneDrive location selected by the user.
+
+- Version 13 removes manual Purchase Date and the duplicate History date column; new entries use current Pakistan date/day/time.
+- Quick Add displays all saved and household catalogue items and adds a third 36-item local sprite (about 90 mapped pictures total).
+- OneDrive local-folder backup uses the File System Access API after a one-time folder selection.
+- New entries debounce backup for one hour, then overwrite the single `maqsood-karyana-history-auto.csv` file; overdue backup runs on next authenticated app open.
 
 - Version 12 fixes missing Quick Add pictures using root-level sprites that are easier to deploy and cache.
 - A dedicated 18-item sprite matches the user’s visible catalogue; a second sprite covers 36 common grocery items.

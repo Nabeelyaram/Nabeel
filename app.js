@@ -5,6 +5,8 @@
   const SESSION_KEY = "maqsood-karyana-session";
   const PROFILE_KEY = "maqsood-karyana-profile";
   const OFFLINE_QUEUE_KEY = "maqsood-karyana-offline-drafts";
+  const BACKUP_DUE_KEY = "maqsood-karyana-backup-due";
+  const BACKUP_LAST_KEY = "maqsood-karyana-backup-last";
   const readStored = (key, fallback) => {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
   };
@@ -15,6 +17,7 @@
     items: [],
     entries: [],
     ledger: [],
+    dataLoaded: false,
     deferredPrompt: null,
     syncing: false,
     dashboardDays: 30,
@@ -34,10 +37,12 @@
     "Mosquito Coil", "Neel", "Pyaaz", "Aloo", "Tamatar", "Lehsan",
     "Adrak", "Hari Mirch", "Lemon", "Sabzi", "Chicken", "Beef",
     "Mutton", "Fish"
+    , "Hair Color", "Rusk", "Jam", "Ketchup", "Achar", "Juice", "Mineral Water", "Rooh Afza", "Potato Chips", "Nimko", "Shampoo", "Toothpaste", "Toothbrush", "Dishwash", "Floor Cleaner", "Toilet Cleaner", "Bleach", "Phenyl", "Tissue Paper", "Toilet Roll", "Garbage Bags", "Match Box", "Mosquito Coil", "Neel", "Laundry Detergent", "Diapers", "Sanitary Pads", "Razor", "Shaving Cream", "Handwash", "Batteries", "LED Bulb", "Broom"
   ];
   const CHART_COLORS = ["#176b45", "#d38b26", "#3a7ca5", "#8e5ea2", "#cf5c5c"];
   const QUICK_SPRITE_ITEMS = ["chawal","cold drink","sabzi","aloo","soap","ghee","sabzi masala","pyaaz","cheeni","washing powder","cheez","doodh","haldi","chai patti","chaina namak","cooking oil","masala","besan"];
   const CORE_SPRITE_ITEMS = ["aata","chawal","cheeni","daal chana","daal masoor","daal moong","daal mash","daal arhar","besan","suji","maida","namak","laal mirch","kali mirch","haldi","dhania powder","zeera","garam masala","cooking oil","ghee","chai patti","doodh","dahi","anday","bread","biscuit","pyaaz","aloo","tamatar","lehsan","adrak","lemon","chicken","beef","fish","soap"];
+  const HOUSEHOLD_SPRITE_ITEMS = ["noodles","hair color","rusk","jam","ketchup","achar","juice","mineral water","rooh afza","potato chips","nimko","shampoo","toothpaste","toothbrush","dishwash","floor cleaner","toilet cleaner","bleach","phenyl","tissue paper","toilet roll","garbage bags","match box","mosquito coil","neel","hari mirch","mutton","laundry detergent","diapers","sanitary pads","razor","shaving cream","handwash","batteries","led bulb","broom"];
   const $ = (id) => document.getElementById(id);
   const configured = /^https:\/\//.test(config.supabaseUrl || "") && !String(config.supabaseAnonKey || "").startsWith("YOUR_");
   const money = (value) => `Rs ${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
@@ -178,6 +183,7 @@
 
   async function loadEntries() {
     state.entries = await api("store_entries?select=*&order=purchase_date.desc,created_at.desc") || [];
+    state.dataLoaded = true;
   }
 
   async function loadLedger() {
@@ -191,6 +197,7 @@
     renderAnalytics();
     renderItems();
     renderQuickItems();
+    runAutoBackup();
   }
 
   function entryStatus(row) {
@@ -246,6 +253,9 @@
       [/^(dahi|adha kilo dahi)$/, "Dahi"],
       [/^(chana masala|chaina masala)$/, "Chana Masala"],
       [/^(sawinya|seviyan)$/, "Seviyan"]
+      , [/^(china namak|chaina namak)$/, "Chaina namak"]
+      , [/^(baleech|bleech|bleach)$/, "Bleach"]
+      , [/^(color tub|colour tub|hair color|hair colour)$/, "Hair Color"]
     ];
     const match = aliases.find(([pattern]) => pattern.test(key));
     return match ? match[1] : original;
@@ -371,6 +381,7 @@
     clearEntry();
     showView("dashboard");
     renderDashboard();
+    scheduleAutoBackup();
     toast("Internet nahi. Entry offline draft mein save ho gayi.");
   }
 
@@ -520,7 +531,7 @@
     }
     const id = $("entryId").value;
     if (id && !navigator.onLine) return toast("Purana record edit karne ke liye internet chahiye");
-    const purchaseDate = $("purchaseDate").value;
+    const purchaseDate = id ? $("purchaseDate").value : today();
     if (!confirmEntrySave({ id, name, total, purchaseDate })) return;
     const existing = id ? state.entries.find((row) => row.id === id) : null;
     const baseRow = {
@@ -550,6 +561,7 @@
       await refreshAll();
       showView("dashboard");
       toast(id ? "Record updated" : "Saman save ho gaya");
+      if (!id) scheduleAutoBackup();
     } catch (error) {
       console.error(error);
       if (!id && (error instanceof TypeError || !navigator.onLine)) return queueOfflineEntry(baseRow);
@@ -572,18 +584,21 @@
   }
 
   function quickSpriteStyle(name) {
-    const key = normalizedItemName(name).toLowerCase();
+    const originalKey = normalizedItemName(name).toLowerCase();
+    const key = /masala/.test(originalKey) ? (originalKey.includes("sabzi") ? "sabzi masala" : "masala") : /namak|salt/.test(originalKey) ? "chaina namak" : /cold|drink|cola|sprite|dew/.test(originalKey) ? "cold drink" : /washing|detergent|surf/.test(originalKey) ? "laundry detergent" : /tissue/.test(originalKey) ? "tissue paper" : /noodle/.test(originalKey) ? "noodles" : originalKey;
     let index = QUICK_SPRITE_ITEMS.indexOf(key);
     if (index >= 0) { const column = index % 6, row = Math.floor(index / 6); return `background-image:url('grocery-quick-items-v12.jpg');background-size:600% 300%;background-position:${column * 20}% ${row * 50}%`; }
     index = CORE_SPRITE_ITEMS.indexOf(key);
+    if (index >= 0) { const column = index % 6, row = Math.floor(index / 6); return `background-image:url('grocery-core-items-v12.png');background-size:600% 600%;background-position:${column * 20}% ${row * 20}%`; }
+    index = HOUSEHOLD_SPRITE_ITEMS.indexOf(key);
     if (index < 0) return "";
     const column = index % 6, row = Math.floor(index / 6);
-    return `background-image:url('grocery-core-items-v12.png');background-size:600% 600%;background-position:${column * 20}% ${row * 20}%`;
+    return `background-image:url('grocery-household-items-v13.png');background-size:600% 600%;background-position:${column * 20}% ${row * 20}%`;
   }
 
   function renderQuickItems() {
     const frequentNames = grouped(state.entries).sort((a, b) => b.count - a.count).map((item) => item.name);
-    const names = [...new Set([...frequentNames, ...state.items.map((item) => normalizedItemName(item.name)), ...BASIC_ITEMS])].slice(0, 18);
+    const names = [...new Set([...frequentNames, ...state.items.map((item) => normalizedItemName(item.name)), ...BASIC_ITEMS])];
     $("quickItemGallery").innerHTML = names.map((name) => { const sprite = quickSpriteStyle(name); return `<button class="quick-item-card" type="button" data-quick-item="${escapeHtml(name)}"><span class="quick-image ${sprite ? "has-sprite" : ""}"${sprite ? ` style="${sprite}"` : ""}>${sprite ? "" : `<img src="${itemImageUrl(name)}" alt="" loading="lazy"><b>${escapeHtml(name.charAt(0).toUpperCase())}</b>`}</span><strong>${escapeHtml(name)}</strong><small>Quick add</small></button>`; }).join("");
     $("quickItemGallery").querySelectorAll("[data-quick-item]").forEach((button) => button.addEventListener("click", () => { $("itemName").value = button.dataset.quickItem; $("itemName").focus(); $("itemName").scrollIntoView({ behavior: "smooth", block: "center" }); toast(`${button.dataset.quickItem} select ho gaya`); }));
     $("quickItemGallery").querySelectorAll("img").forEach((image) => image.addEventListener("error", () => image.classList.add("image-failed")));
@@ -632,8 +647,8 @@
       ["Records", rows.length], ["Total", money(sum.total)]
     ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
     $("historyTable").innerHTML = rows.length ? `
-      <table><thead><tr><th>Purchase date</th><th>Saved day & time</th><th>Item</th><th>Total</th><th>Entry karne wala</th><th>Action</th></tr></thead>
-      <tbody>${rows.map((row) => { const saved = savedDayTime(row); return `<tr><td>${escapeHtml(row.purchase_date)}</td><td>${escapeHtml(saved)}</td><td>${escapeHtml(row.item_name)}</td><td>${money(row.total_amount)}</td><td>${escapeHtml(row.entered_by || "Purana record")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`; }).join("")}</tbody></table>
+      <table><thead><tr><th>Date, day & time</th><th>Item</th><th>Total</th><th>Entry karne wala</th><th>Action</th></tr></thead>
+      <tbody>${rows.map((row) => { const saved = savedDayTime(row); return `<tr><td>${escapeHtml(saved)}</td><td>${escapeHtml(row.item_name)}</td><td>${money(row.total_amount)}</td><td>${escapeHtml(row.entered_by || "Purana record")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`; }).join("")}</tbody></table>
     ` : `<p class="empty">Is filter mein koi record nahi.</p>`;
     $("historyTable").querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editEntry(button.dataset.edit)));
     $("historyTable").querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteEntry(button.dataset.delete)));
@@ -722,8 +737,8 @@
   function exportCsv() {
     const rows = filteredEntries();
     if (!rows.length) return toast("Export ke liye data nahi");
-    const headers = ["Purchase Date","Saved At","Item","Total","Entered By"];
-    const values = rows.map((row) => [row.purchase_date,savedDayTime(row),row.item_name,row.total_amount,row.entered_by || "Purana record"]);
+    const headers = ["Date Day Time","Item","Total","Entered By"];
+    const values = rows.map((row) => [savedDayTime(row),row.item_name,row.total_amount,row.entered_by || "Purana record"]);
     const csv = [headers, ...values].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const link = document.createElement("a");
@@ -731,6 +746,56 @@
     link.download = `maqsood-karyana-history-${today()}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  function backupCsv() {
+    const headers = ["Date Day Time","Item","Total","Entered By"];
+    const values = state.entries.map((row) => [savedDayTime(row),row.item_name,row.total_amount,row.entered_by || "Purana record"]);
+    return "\ufeff" + [headers, ...values].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
+  }
+
+  function backupDb() {
+    return new Promise((resolve, reject) => { const request = indexedDB.open("maqsood-karyana-backup", 1); request.onupgradeneeded = () => request.result.createObjectStore("handles"); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+  }
+
+  async function saveBackupHandle(handle) { const db = await backupDb(); return new Promise((resolve, reject) => { const tx = db.transaction("handles", "readwrite"); tx.objectStore("handles").put(handle, "onedrive-folder"); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); }); }
+  async function getBackupHandle() { const db = await backupDb(); return new Promise((resolve, reject) => { const request = db.transaction("handles").objectStore("handles").get("onedrive-folder"); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
+
+  async function connectBackupFolder() {
+    if (!window.showDirectoryPicker) return toast("Folder backup ke liye Chrome/Edge desktop use karein");
+    try { const parent = await window.showDirectoryPicker({ mode: "readwrite" }); const handle = await parent.getDirectoryHandle("Maqsood Karyana Backups", { create: true }); await saveBackupHandle(handle); await updateBackupStatus(); toast("Maqsood Karyana Backups folder connected"); } catch (error) { if (error.name !== "AbortError") toast("Folder connect nahi hua"); }
+  }
+
+  function scheduleAutoBackup() {
+    localStorage.setItem(BACKUP_DUE_KEY, String(Date.now() + 3600000));
+    clearTimeout(scheduleAutoBackup.timer);
+    scheduleAutoBackup.timer = setTimeout(() => runAutoBackup(), 3600000);
+    updateBackupStatus();
+  }
+
+  async function runAutoBackup(force = false) {
+    if (!state.dataLoaded) return;
+    const due = Number(localStorage.getItem(BACKUP_DUE_KEY) || 0);
+    if (!force && (!due || Date.now() < due)) { if (due) { clearTimeout(scheduleAutoBackup.timer); scheduleAutoBackup.timer = setTimeout(() => runAutoBackup(), Math.min(2147483647, due - Date.now())); } return updateBackupStatus(); }
+    try {
+      const handle = await getBackupHandle();
+      if (!handle) return updateBackupStatus();
+      let permission = await handle.queryPermission({ mode: "readwrite" });
+      if (permission !== "granted" && force) permission = await handle.requestPermission({ mode: "readwrite" });
+      if (permission !== "granted") return updateBackupStatus();
+      const file = await handle.getFileHandle("maqsood-karyana-history-auto.csv", { create: true });
+      const writable = await file.createWritable(); await writable.write(backupCsv()); await writable.close();
+      localStorage.removeItem(BACKUP_DUE_KEY); localStorage.setItem(BACKUP_LAST_KEY, new Date().toISOString());
+      await updateBackupStatus(); toast("OneDrive history backup save ho gaya");
+    } catch (error) { console.error(error); toast("Auto backup save nahi hua. Folder permission check karein."); }
+  }
+
+  async function updateBackupStatus() {
+    const status = $("backupStatus"); if (!status) return;
+    const handle = await getBackupHandle().catch(() => null); const due = Number(localStorage.getItem(BACKUP_DUE_KEY) || 0); const last = localStorage.getItem(BACKUP_LAST_KEY);
+    if (!handle) return status.textContent = "Pehli dafa OneDrive mein backup folder select karein.";
+    if (due) return status.textContent = `Connected: ${handle.name} · Next backup ${new Intl.DateTimeFormat("en-PK", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Karachi" }).format(new Date(due))}`;
+    status.textContent = last ? `Connected: ${handle.name} · Last backup ${new Intl.DateTimeFormat("en-PK", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Karachi" }).format(new Date(last))}` : `Connected: ${handle.name} · New entry ke 1 hour baad backup hoga.`;
   }
 
   function bindEvents() {
@@ -764,6 +829,8 @@
     $("printBtn").addEventListener("click", () => window.print());
     $("itemForm").addEventListener("submit", addItem);
     $("ledgerForm").addEventListener("submit", saveLedger);
+    $("connectBackupFolder").addEventListener("click", connectBackupFolder);
+    $("backupNowBtn").addEventListener("click", () => runAutoBackup(true));
     document.querySelectorAll("[data-install-app]").forEach((button) => button.addEventListener("click", async () => {
       if (!state.deferredPrompt) return toast("Browser menu se Install App choose karein");
       state.deferredPrompt.prompt();
@@ -807,7 +874,11 @@
     $("ledgerDate").value = today();
     updateInstallButtons();
     renderOfflineDrafts();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=12").catch(console.error);
+    const updateEntryClock = () => { $("entryCurrentDateTime").textContent = new Intl.DateTimeFormat("en-PK", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" }).format(new Date()); };
+    updateEntryClock(); setInterval(updateEntryClock, 30000);
+    updateBackupStatus(); runAutoBackup(); setInterval(() => runAutoBackup(), 60000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) runAutoBackup(); });
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=14").catch(console.error);
     restoreSession();
   }
 

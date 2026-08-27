@@ -1,5 +1,18 @@
 # Maqsood Karyana Store
 
+## Version 14 update
+
+- When the user selects their synced OneDrive location, the app creates/opens a child folder named `Maqsood Karyana Backups` and keeps the single rolling CSV inside it.
+
+## Version 13 update
+
+- Manual Purchase Date removed from Add Saman and the duplicate History date column removed. New purchases use the real current Pakistan date/day/time automatically.
+- Quick Add now lists all saved items plus an expanded household catalogue instead of showing only 18 cards.
+- A third 36-item household sprite covers noodles, pantry, cleaning, personal care, baby care and household supplies. Together the bundled sprites cover about 90 common items.
+- OneDrive folder backup system added for desktop Chrome/Edge. The user selects a synced OneDrive folder once.
+- Each new record resets a one-hour debounce timer. When due, the app overwrites one file named `maqsood-karyana-history-auto.csv`, avoiding daily duplicate files.
+- If the app is closed at the due time, the overdue backup runs when the authenticated app is next opened and the folder permission is available.
+
 ## Version 12 update
 
 - Quick Add pictures now use two root-level sprite files, so deployment no longer depends only on a nested image folder.
