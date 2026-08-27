@@ -1,1 +1,1 @@
-window.MAQSOOD_APP_MODE = "user";
+window.MAQSOOD_APP_MODE = "admin";
