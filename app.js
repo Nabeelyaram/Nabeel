@@ -36,6 +36,8 @@
     "Mutton", "Fish"
   ];
   const CHART_COLORS = ["#176b45", "#d38b26", "#3a7ca5", "#8e5ea2", "#cf5c5c"];
+  const QUICK_SPRITE_ITEMS = ["chawal","cold drink","sabzi","aloo","soap","ghee","sabzi masala","pyaaz","cheeni","washing powder","cheez","doodh","haldi","chai patti","chaina namak","cooking oil","masala","besan"];
+  const CORE_SPRITE_ITEMS = ["aata","chawal","cheeni","daal chana","daal masoor","daal moong","daal mash","daal arhar","besan","suji","maida","namak","laal mirch","kali mirch","haldi","dhania powder","zeera","garam masala","cooking oil","ghee","chai patti","doodh","dahi","anday","bread","biscuit","pyaaz","aloo","tamatar","lehsan","adrak","lemon","chicken","beef","fish","soap"];
   const $ = (id) => document.getElementById(id);
   const configured = /^https:\/\//.test(config.supabaseUrl || "") && !String(config.supabaseAnonKey || "").startsWith("YOUR_");
   const money = (value) => `Rs ${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
@@ -569,10 +571,20 @@
     return `item-images/${slug || "grocery"}.jpg`;
   }
 
+  function quickSpriteStyle(name) {
+    const key = normalizedItemName(name).toLowerCase();
+    let index = QUICK_SPRITE_ITEMS.indexOf(key);
+    if (index >= 0) { const column = index % 6, row = Math.floor(index / 6); return `background-image:url('grocery-quick-items-v12.jpg');background-size:600% 300%;background-position:${column * 20}% ${row * 50}%`; }
+    index = CORE_SPRITE_ITEMS.indexOf(key);
+    if (index < 0) return "";
+    const column = index % 6, row = Math.floor(index / 6);
+    return `background-image:url('grocery-core-items-v12.png');background-size:600% 600%;background-position:${column * 20}% ${row * 20}%`;
+  }
+
   function renderQuickItems() {
     const frequentNames = grouped(state.entries).sort((a, b) => b.count - a.count).map((item) => item.name);
     const names = [...new Set([...frequentNames, ...state.items.map((item) => normalizedItemName(item.name)), ...BASIC_ITEMS])].slice(0, 18);
-    $("quickItemGallery").innerHTML = names.map((name) => `<button class="quick-item-card" type="button" data-quick-item="${escapeHtml(name)}"><span class="quick-image"><img src="${itemImageUrl(name)}" alt="" loading="lazy" referrerpolicy="no-referrer"><b>${escapeHtml(name.charAt(0).toUpperCase())}</b></span><strong>${escapeHtml(name)}</strong><small>Quick add</small></button>`).join("");
+    $("quickItemGallery").innerHTML = names.map((name) => { const sprite = quickSpriteStyle(name); return `<button class="quick-item-card" type="button" data-quick-item="${escapeHtml(name)}"><span class="quick-image ${sprite ? "has-sprite" : ""}"${sprite ? ` style="${sprite}"` : ""}>${sprite ? "" : `<img src="${itemImageUrl(name)}" alt="" loading="lazy"><b>${escapeHtml(name.charAt(0).toUpperCase())}</b>`}</span><strong>${escapeHtml(name)}</strong><small>Quick add</small></button>`; }).join("");
     $("quickItemGallery").querySelectorAll("[data-quick-item]").forEach((button) => button.addEventListener("click", () => { $("itemName").value = button.dataset.quickItem; $("itemName").focus(); $("itemName").scrollIntoView({ behavior: "smooth", block: "center" }); toast(`${button.dataset.quickItem} select ho gaya`); }));
     $("quickItemGallery").querySelectorAll("img").forEach((image) => image.addEventListener("error", () => image.classList.add("image-failed")));
   }
@@ -621,10 +633,17 @@
     ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
     $("historyTable").innerHTML = rows.length ? `
       <table><thead><tr><th>Purchase date</th><th>Saved day & time</th><th>Item</th><th>Total</th><th>Entry karne wala</th><th>Action</th></tr></thead>
-      <tbody>${rows.map((row) => { const saved = row.entered_at ? new Intl.DateTimeFormat("en-PK", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" }).format(new Date(row.entered_at)) : "Purana record"; return `<tr><td>${escapeHtml(row.purchase_date)}</td><td>${escapeHtml(saved)}</td><td>${escapeHtml(row.item_name)}</td><td>${money(row.total_amount)}</td><td>${escapeHtml(row.entered_by || "Purana record")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`; }).join("")}</tbody></table>
+      <tbody>${rows.map((row) => { const saved = savedDayTime(row); return `<tr><td>${escapeHtml(row.purchase_date)}</td><td>${escapeHtml(saved)}</td><td>${escapeHtml(row.item_name)}</td><td>${money(row.total_amount)}</td><td>${escapeHtml(row.entered_by || "Purana record")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`; }).join("")}</tbody></table>
     ` : `<p class="empty">Is filter mein koi record nahi.</p>`;
     $("historyTable").querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editEntry(button.dataset.edit)));
     $("historyTable").querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteEntry(button.dataset.delete)));
+  }
+
+  function savedDayTime(row) {
+    if (row.entered_at) return new Intl.DateTimeFormat("en-PK", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" }).format(new Date(row.entered_at));
+    const purchaseDate = new Date(`${row.purchase_date}T12:00:00`);
+    const dateAndDay = new Intl.DateTimeFormat("en-PK", { weekday: "long", day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Karachi" }).format(purchaseDate);
+    return `${dateAndDay}, 09:00 PM`;
   }
 
   function editEntry(id) {
@@ -704,7 +723,7 @@
     const rows = filteredEntries();
     if (!rows.length) return toast("Export ke liye data nahi");
     const headers = ["Purchase Date","Saved At","Item","Total","Entered By"];
-    const values = rows.map((row) => [row.purchase_date,row.entered_at || "Purana record",row.item_name,row.total_amount,row.entered_by || "Purana record"]);
+    const values = rows.map((row) => [row.purchase_date,savedDayTime(row),row.item_name,row.total_amount,row.entered_by || "Purana record"]);
     const csv = [headers, ...values].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const link = document.createElement("a");
@@ -788,7 +807,7 @@
     $("ledgerDate").value = today();
     updateInstallButtons();
     renderOfflineDrafts();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=11").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=12").catch(console.error);
     restoreSession();
   }
 

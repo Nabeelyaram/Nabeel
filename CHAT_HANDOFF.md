@@ -10,11 +10,16 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-tableau-drilldown-v11.zip`
+- Latest package: `maqsood-karyana-store-pictures-time-v12.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Version 12 fixes missing Quick Add pictures using root-level sprites that are easier to deploy and cache.
+- A dedicated 18-item sprite matches the user’s visible catalogue; a second sprite covers 36 common grocery items.
+- Historical rows without `entered_at` show their purchase-date weekday plus fixed 09:00 PM, not “Purana record”.
+- New rows show their real Pakistan weekday, full date and current saved time.
 
 - Version 11 adds Tableau/Excel-style cross-filter drill-down: trend dates and top items are clickable and can be combined.
 - Drill-down shows matching count, total, average, highest amount and clickable matching records.

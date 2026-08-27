@@ -1,5 +1,12 @@
 # Maqsood Karyana Store
 
+## Version 12 update
+
+- Quick Add pictures now use two root-level sprite files, so deployment no longer depends only on a nested image folder.
+- The 18 items visible in the supplied screenshot have dedicated product pictures; 36 additional common grocery items use the bundled core sprite.
+- Historical rows without `entered_at` now display the weekday calculated from `purchase_date` with a fixed `09:00 PM` time instead of “Purana record”.
+- New rows continue to show their real Pakistan weekday, full date and current saved time.
+
 ## Version 11 update
 
 Version 11 mein Tableau/Excel-style interactive drill-down add hua hai. Trend point ya Top Saman item click karne par matching entries, total, average, highest amount aur individual records show hote hain. Date aur item selections combine bhi ho sakti hain; record click se filtered History khulti hai.
