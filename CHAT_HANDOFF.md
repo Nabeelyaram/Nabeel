@@ -10,11 +10,14 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-onedrive-auto-backup-v14.zip`
+- Latest package: `maqsood-karyana-store-history-backup-clean-v15.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Version 15 moves OneDrive backup controls to History and removes Paid vs Baqaya comparison UI, Payment filter and Total Baki quick insight.
+- Khata ledger records and existing Supabase purchase data remain unchanged.
 
 - Version 14 creates/opens `Maqsood Karyana Backups` inside the OneDrive location selected by the user.
 

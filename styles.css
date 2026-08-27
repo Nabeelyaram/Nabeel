@@ -84,7 +84,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .dashboard-grid, .analytics-grid { display: grid; grid-template-columns: 1.4fr .8fr; gap: 16px; }
 .visual-dashboard { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 16px; }
 .chart-panel { min-width: 0; overflow: hidden; }
-.trend-panel { grid-row: span 2; }
+.trend-panel { grid-row: auto; }
 .chart-total { color: var(--green-800); font-size: 21px; }
 .dynamic-chart-head { align-items: flex-start; }
 .period-controls { display: flex; gap: 4px; padding: 3px; border-radius: 8px; background: var(--canvas); }
@@ -242,7 +242,6 @@ th { position: sticky; top: 0; background: #eaf3ee; color: var(--green-800); }
   .stat strong { font-size: 20px; }
   .dashboard-grid, .analytics-grid { grid-template-columns: 1fr; }
   .visual-dashboard { grid-template-columns: 1fr; }
-  .trend-panel { grid-row: auto; }
   .ledger-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ledger-form { grid-template-columns: 1fr 1fr; }
   .ledger-form button { grid-column: 1 / -1; }

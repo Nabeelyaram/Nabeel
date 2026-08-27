@@ -1,5 +1,12 @@
 # Maqsood Karyana Store
 
+## Version 15 update
+
+- OneDrive History Auto Backup panel moved from Overview to History.
+- Paid vs Baqaya account-health card removed.
+- Payment filter and Total Baki Raqam quick insight removed.
+- Khata ledger data remains unchanged.
+
 ## Version 14 update
 
 - When the user selects their synced OneDrive location, the app creates/opens a child folder named `Maqsood Karyana Backups` and keeps the single rolling CSV inside it.

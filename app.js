@@ -276,7 +276,6 @@
     $("topFrequent").textContent = frequent ? `${frequent.name} (${frequent.count} times)` : "-";
     $("topSpending").textContent = spending ? `${spending.name} - ${money(spending.spend)}` : "-";
     const allTotals = totals(state.entries);
-    $("allRemaining").textContent = money(allTotals.remaining);
     renderLedger(allTotals);
     renderVisualDashboard();
     $("recentList").innerHTML = state.entries.slice(0, 6).map((row) => `
@@ -331,9 +330,6 @@
     const stops = top.map((item, index) => { const start = cursor; cursor += item.spend / topTotal * 100; return `${CHART_COLORS[index]} ${start}% ${cursor}%`; }).join(", ");
     $("dashboardTopItems").innerHTML = top.length ? `<div class="donut" style="background:conic-gradient(${stops})"><span>${top.length}<small>items</small></span></div><div class="donut-legend">${top.map((item, index) => `<button type="button" data-dashboard-item="${escapeHtml(item.name)}" class="${state.dashboardFilter.item === item.name ? "selected" : ""}"><i style="background:${CHART_COLORS[index]}"></i><span>${escapeHtml(item.name)}</span><strong>${money(item.spend)}</strong></button>`).join("")}</div>` : `<p class="empty">Graph ke liye data available nahi.</p>`;
     $("dashboardTopItems").querySelectorAll("[data-dashboard-item]").forEach((button) => button.addEventListener("click", () => { state.dashboardFilter.item = state.dashboardFilter.item === button.dataset.dashboardItem ? "" : button.dataset.dashboardItem; renderVisualDashboard(); }));
-    const all = totals(currentRows), paid = all.paid, remaining = Math.max(0, all.total - paid);
-    const paidPercent = all.total ? Math.min(100, paid / all.total * 100) : 0;
-    $("accountHealthChart").innerHTML = `<div class="health-number"><strong>${paidPercent.toFixed(0)}%</strong><span>purchases paid</span></div><div class="health-track"><i style="width:${paidPercent}%"></i></div><div class="health-values"><span><i class="paid-dot"></i>Paid <strong>${money(paid)}</strong></span><span><i class="due-dot"></i>Baqaya <strong>${money(remaining)}</strong></span></div>`;
     document.querySelectorAll("[data-dashboard-days]").forEach((button) => button.classList.toggle("active", String(state.dashboardDays) === button.dataset.dashboardDays));
     renderDashboardDrilldown();
   }
@@ -443,7 +439,6 @@
     $("entryPaidTotal").textContent = money(allTotals.paid);
     $("depositTotal").textContent = money(ledger.payments);
     $("accountRemaining").textContent = money(remaining);
-    $("allRemaining").textContent = money(remaining);
     $("ledgerHistory").innerHTML = state.ledger.length ? state.ledger.slice(0, 8).map((row) => `
       <div class="record-row">
         <div><strong>${row.entry_type === "payment" ? "Jama payment" : row.entry_type === "opening_balance" ? "Pichla balance" : "Adjustment"}</strong><span>${escapeHtml(row.entry_date)} · ${escapeHtml(row.note || "-")}</span></div>
@@ -619,7 +614,6 @@
   function filteredEntries() {
     const from = $("filterFrom").value;
     const to = $("filterTo").value;
-    const payment = $("filterPayment").value;
     const item = $("filterItem").value.trim().toLowerCase();
     const minimumValue = $("filterAmountMin").value;
     const maximumValue = $("filterAmountMax").value;
@@ -628,7 +622,6 @@
     return state.entries.filter((row) =>
       (!from || row.purchase_date >= from) &&
       (!to || row.purchase_date <= to) &&
-      (!payment || entryStatus(row) === payment) &&
       (!item || row.item_name.toLowerCase().includes(item)) &&
       (minimum === null || Number(row.total_amount) >= minimum) &&
       (maximum === null || Number(row.total_amount) <= maximum)
@@ -822,7 +815,7 @@
     $("clearEntryBtn").addEventListener("click", clearEntry);
     $("totalAmount").addEventListener("input", updateRemaining);
     $("paidAmount").addEventListener("input", updateRemaining);
-    ["filterFrom","filterTo","filterPayment","filterItem","filterAmountMin","filterAmountMax"].forEach((id) => $(id).addEventListener("change", renderHistory));
+    ["filterFrom","filterTo","filterItem","filterAmountMin","filterAmountMax"].forEach((id) => $(id).addEventListener("change", renderHistory));
     $("showHistoryBtn").addEventListener("click", renderHistory);
     $("showAnalyticsBtn").addEventListener("click", renderAnalytics);
     $("exportCsvBtn").addEventListener("click", exportCsv);
@@ -878,7 +871,7 @@
     updateEntryClock(); setInterval(updateEntryClock, 30000);
     updateBackupStatus(); runAutoBackup(); setInterval(() => runAutoBackup(), 60000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) runAutoBackup(); });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=14").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=15").catch(console.error);
     restoreSession();
   }
 
