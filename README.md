@@ -1,5 +1,15 @@
 # Maqsood Karyana Store
 
+## Version 11 update
+
+Version 11 mein Tableau/Excel-style interactive drill-down add hua hai. Trend point ya Top Saman item click karne par matching entries, total, average, highest amount aur individual records show hote hain. Date aur item selections combine bhi ho sakti hain; record click se filtered History khulti hai.
+
+- 36 common grocery pictures app ke andar locally bundled hain; runtime internet image hotlink nahi hoti.
+- New entry ke sath exact `entered_at` timestamp save hota hai.
+- History Pakistan timezone mein weekday, date aur save time show karti hai.
+- Offline draft ka asal entry time bhi sync ke baad preserve hota hai.
+- Supabase SQL Editor mein `v11_add_entered_at.sql` ek dafa run karna required hai. Migration additive hai aur purani rows delete/replace nahi karti.
+
 ## Version 10 update
 
 - Dashboard ab interactive aur genuinely dynamic hai.

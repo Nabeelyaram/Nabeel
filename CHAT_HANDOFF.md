@@ -10,11 +10,16 @@ Future work should be performed from this OneDrive folder.
 
 ## Current Version
 
-- Latest package: `maqsood-karyana-store-dynamic-dashboard-v10.zip`
+- Latest package: `maqsood-karyana-store-tableau-drilldown-v11.zip`
 - Main source files: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `supabase_setup.sql`
 - `config.js` contains the live Supabase connection and must remain private.
 
 ## Latest Completed Work
+
+- Version 11 adds Tableau/Excel-style cross-filter drill-down: trend dates and top items are clickable and can be combined.
+- Drill-down shows matching count, total, average, highest amount and clickable matching records.
+- 36 generated, unbranded grocery thumbnails are bundled locally under `item-images`; runtime internet image hotlinks were removed.
+- New records save `entered_at`; History shows Pakistan weekday/date/time. Offline draft timestamps remain the original entry time after sync.
 
 - Version 10 makes the dashboard interactive with 7D, 30D, 90D and All-time live period controls.
 - Trend total, line graph, comparison, top-item donut and paid-vs-due view all recalculate for the selected period.
@@ -42,7 +47,7 @@ Future work should be performed from this OneDrive folder.
 
 ## Required Supabase Step
 
-Version 10 requires no new SQL. If version 7 SQL has already been run, deploy the new frontend files only. Existing rows remain unchanged.
+Version 11 requires running `v11_add_entered_at.sql` once to add nullable `entered_at` with a default for new rows. This is additive: existing rows are not deleted or replaced.
 
 ## Safety Rules
 

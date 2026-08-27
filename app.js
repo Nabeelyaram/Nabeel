@@ -17,7 +17,8 @@
     ledger: [],
     deferredPrompt: null,
     syncing: false,
-    dashboardDays: 30
+    dashboardDays: 30,
+    dashboardFilter: { item: "", from: "", to: "" }
   };
   const BASIC_ITEMS = [
     "Aata", "Chawal", "Cheeni", "Daal Chana", "Daal Masoor", "Daal Moong",
@@ -304,6 +305,7 @@
     $("spendingTrendChart").querySelectorAll("[data-point]").forEach((point) => {
       const show = () => { const data = chartPoints[Number(point.dataset.point)]; $("chartTooltip").innerHTML = `<strong>${escapeHtml(data.label)}</strong><span>${money(data.value)}</span>`; $("chartTooltip").classList.remove("hidden"); };
       point.addEventListener("mouseenter", show); point.addEventListener("focus", show); point.addEventListener("click", show);
+      point.addEventListener("click", () => { const data = chartPoints[Number(point.dataset.point)]; const endOffset = Math.min(0, -(periodDays - 1) + Number(point.dataset.point) * bucketSize + bucketSize - 1); state.dashboardFilter.from = data.date; state.dashboardFilter.to = bucketSize === 1 ? data.date : dateOffset(endOffset); renderDashboardDrilldown(); });
       point.addEventListener("mouseleave", () => $("chartTooltip").classList.add("hidden")); point.addEventListener("blur", () => $("chartTooltip").classList.add("hidden"));
     });
     const currentTotal = totals(currentRows).total, previousTotal = totals(previousRows).total;
@@ -315,11 +317,26 @@
     const topTotal = top.reduce((sum, item) => sum + item.spend, 0) || 1;
     let cursor = 0;
     const stops = top.map((item, index) => { const start = cursor; cursor += item.spend / topTotal * 100; return `${CHART_COLORS[index]} ${start}% ${cursor}%`; }).join(", ");
-    $("dashboardTopItems").innerHTML = top.length ? `<div class="donut" style="background:conic-gradient(${stops})"><span>${top.length}<small>items</small></span></div><div class="donut-legend">${top.map((item, index) => `<div><i style="background:${CHART_COLORS[index]}"></i><span>${escapeHtml(item.name)}</span><strong>${money(item.spend)}</strong></div>`).join("")}</div>` : `<p class="empty">Graph ke liye data available nahi.</p>`;
+    $("dashboardTopItems").innerHTML = top.length ? `<div class="donut" style="background:conic-gradient(${stops})"><span>${top.length}<small>items</small></span></div><div class="donut-legend">${top.map((item, index) => `<button type="button" data-dashboard-item="${escapeHtml(item.name)}" class="${state.dashboardFilter.item === item.name ? "selected" : ""}"><i style="background:${CHART_COLORS[index]}"></i><span>${escapeHtml(item.name)}</span><strong>${money(item.spend)}</strong></button>`).join("")}</div>` : `<p class="empty">Graph ke liye data available nahi.</p>`;
+    $("dashboardTopItems").querySelectorAll("[data-dashboard-item]").forEach((button) => button.addEventListener("click", () => { state.dashboardFilter.item = state.dashboardFilter.item === button.dataset.dashboardItem ? "" : button.dataset.dashboardItem; renderVisualDashboard(); }));
     const all = totals(currentRows), paid = all.paid, remaining = Math.max(0, all.total - paid);
     const paidPercent = all.total ? Math.min(100, paid / all.total * 100) : 0;
     $("accountHealthChart").innerHTML = `<div class="health-number"><strong>${paidPercent.toFixed(0)}%</strong><span>purchases paid</span></div><div class="health-track"><i style="width:${paidPercent}%"></i></div><div class="health-values"><span><i class="paid-dot"></i>Paid <strong>${money(paid)}</strong></span><span><i class="due-dot"></i>Baqaya <strong>${money(remaining)}</strong></span></div>`;
     document.querySelectorAll("[data-dashboard-days]").forEach((button) => button.classList.toggle("active", String(state.dashboardDays) === button.dataset.dashboardDays));
+    renderDashboardDrilldown();
+  }
+
+  function renderDashboardDrilldown() {
+    const filter = state.dashboardFilter;
+    const active = Boolean(filter.item || filter.from || filter.to);
+    $("clearDashboardFilter").classList.toggle("hidden", !active);
+    if (!active) { $("drilldownTitle").textContent = "Graph ya item par click karke insight dekhein"; $("drilldownStats").innerHTML = `<p class="empty">Trend point ya Top Saman item select karain.</p>`; $("drilldownRecords").innerHTML = ""; return; }
+    const rows = state.entries.filter((row) => (!filter.item || normalizedItemName(row.item_name) === filter.item) && (!filter.from || row.purchase_date >= filter.from) && (!filter.to || row.purchase_date <= filter.to));
+    const sum = totals(rows).total, average = rows.length ? sum / rows.length : 0;
+    $("drilldownTitle").textContent = [filter.item, filter.from ? (filter.from === filter.to ? filter.from : `${filter.from} to ${filter.to}`) : ""].filter(Boolean).join(" · ");
+    $("drilldownStats").innerHTML = `<div><span>Matching entries</span><strong>${rows.length}</strong></div><div><span>Total spend</span><strong>${money(sum)}</strong></div><div><span>Average entry</span><strong>${money(average)}</strong></div><div><span>Highest entry</span><strong>${money(Math.max(0, ...rows.map((row) => Number(row.total_amount))))}</strong></div>`;
+    $("drilldownRecords").innerHTML = rows.slice(0, 8).map((row) => `<button type="button" data-drill-entry="${row.id}"><span>${escapeHtml(row.purchase_date)}</span><strong>${escapeHtml(row.item_name)}</strong><b>${money(row.total_amount)}</b></button>`).join("") || `<p class="empty">Is selection mein record nahi.</p>`;
+    $("drilldownRecords").querySelectorAll("[data-drill-entry]").forEach((button) => button.addEventListener("click", () => { const row = state.entries.find((entry) => entry.id === button.dataset.drillEntry); if (!row) return; $("filterFrom").value = row.purchase_date; $("filterTo").value = row.purchase_date; $("filterItem").value = normalizedItemName(row.item_name); showView("history"); }));
   }
 
   function persistOfflineDrafts() {
@@ -517,6 +534,7 @@
     if (!id) {
       baseRow.entered_by = state.profile;
       baseRow.client_ref = clientRef();
+      baseRow.entered_at = new Date().toISOString();
     }
     if (!navigator.onLine) return queueOfflineEntry(baseRow);
     try {
@@ -547,8 +565,8 @@
   }
 
   function itemImageUrl(name) {
-    const query = encodeURIComponent(`${normalizedItemName(name)} grocery product`);
-    return `https://loremflickr.com/320/220/${query}?lock=${encodeURIComponent(normalizedItemName(name).toLowerCase())}`;
+    const slug = normalizedItemName(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return `item-images/${slug || "grocery"}.jpg`;
   }
 
   function renderQuickItems() {
@@ -602,8 +620,8 @@
       ["Records", rows.length], ["Total", money(sum.total)]
     ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
     $("historyTable").innerHTML = rows.length ? `
-      <table><thead><tr><th>Date</th><th>Item</th><th>Total</th><th>Entry karne wala</th><th>Action</th></tr></thead>
-      <tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.purchase_date)}</td><td>${escapeHtml(row.item_name)}</td><td>${money(row.total_amount)}</td><td>${escapeHtml(row.entered_by || "Purana record")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`).join("")}</tbody></table>
+      <table><thead><tr><th>Purchase date</th><th>Saved day & time</th><th>Item</th><th>Total</th><th>Entry karne wala</th><th>Action</th></tr></thead>
+      <tbody>${rows.map((row) => { const saved = row.entered_at ? new Intl.DateTimeFormat("en-PK", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" }).format(new Date(row.entered_at)) : "Purana record"; return `<tr><td>${escapeHtml(row.purchase_date)}</td><td>${escapeHtml(saved)}</td><td>${escapeHtml(row.item_name)}</td><td>${money(row.total_amount)}</td><td>${escapeHtml(row.entered_by || "Purana record")}</td><td><span class="row-actions"><button class="row-action" data-edit="${row.id}">Edit</button><button class="row-action danger" data-delete="${row.id}">Delete</button></span></td></tr>`; }).join("")}</tbody></table>
     ` : `<p class="empty">Is filter mein koi record nahi.</p>`;
     $("historyTable").querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editEntry(button.dataset.edit)));
     $("historyTable").querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteEntry(button.dataset.delete)));
@@ -685,8 +703,8 @@
   function exportCsv() {
     const rows = filteredEntries();
     if (!rows.length) return toast("Export ke liye data nahi");
-    const headers = ["Date","Item","Total","Entered By"];
-    const values = rows.map((row) => [row.purchase_date,row.item_name,row.total_amount,row.entered_by || "Purana record"]);
+    const headers = ["Purchase Date","Saved At","Item","Total","Entered By"];
+    const values = rows.map((row) => [row.purchase_date,row.entered_at || "Purana record",row.item_name,row.total_amount,row.entered_by || "Purana record"]);
     const csv = [headers, ...values].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const link = document.createElement("a");
@@ -711,6 +729,7 @@
       $("profileModalInitial").textContent = $("deviceProfileName").value.trim().charAt(0).toUpperCase() || "?";
     });
     $("syncDraftsBtn").addEventListener("click", syncOfflineDrafts);
+    $("clearDashboardFilter").addEventListener("click", () => { state.dashboardFilter = { item: "", from: "", to: "" }; renderVisualDashboard(); });
     document.querySelectorAll("[data-dashboard-days]").forEach((button) => button.addEventListener("click", () => { state.dashboardDays = button.dataset.dashboardDays === "all" ? "all" : Number(button.dataset.dashboardDays); renderVisualDashboard(); }));
     document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
     document.querySelectorAll("[data-open-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.openView)));
@@ -769,7 +788,7 @@
     $("ledgerDate").value = today();
     updateInstallButtons();
     renderOfflineDrafts();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=10").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=11").catch(console.error);
     restoreSession();
   }
 

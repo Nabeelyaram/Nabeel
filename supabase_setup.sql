@@ -39,6 +39,7 @@ create table if not exists public.store_entries (
   note text not null default '',
   source_group text not null default 'daily',
   source_ref text,
+  entered_at timestamptz default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -46,6 +47,8 @@ alter table public.store_entries add column if not exists source_group text not 
 alter table public.store_entries add column if not exists source_ref text;
 alter table public.store_entries add column if not exists entered_by text not null default 'Purana record';
 alter table public.store_entries add column if not exists client_ref text;
+alter table public.store_entries add column if not exists entered_at timestamptz;
+alter table public.store_entries alter column entered_at set default now();
 create unique index if not exists store_entries_source_ref_unique on public.store_entries(source_ref) where source_ref is not null;
 create unique index if not exists store_entries_client_ref_unique on public.store_entries(client_ref) where client_ref is not null;
 

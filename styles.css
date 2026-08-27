@@ -109,7 +109,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .donut > span { z-index: 1; display: grid; text-align: center; font-size: 23px; font-weight: 800; }
 .donut small { color: var(--muted); font-size: 10px; font-weight: 600; }
 .donut-legend { display: grid; gap: 8px; min-width: 0; }
-.donut-legend > div { display: grid; grid-template-columns: 9px 1fr auto; align-items: center; gap: 7px; font-size: 11px; }
+.donut-legend > button { display: grid; grid-template-columns: 9px 1fr auto; align-items: center; gap: 7px; width: 100%; padding: 7px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--ink); text-align: left; font-size: 11px; }
+.donut-legend > button:hover, .donut-legend > button.selected { border-color: #a9cdb9; background: var(--green-100); }
 .donut-legend i { width: 9px; height: 9px; border-radius: 50%; }
 .donut-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-health { display: grid; gap: 13px; }
@@ -124,6 +125,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .health-values i { width: 8px; height: 8px; margin-top: 3px; border-radius: 50%; }
 .paid-dot { background: var(--green-700); }
 .due-dot { background: var(--danger); }
+.drilldown-panel { margin-bottom: 16px; border-left: 4px solid #3a7ca5; }
+.drilldown-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+.drilldown-stats > div { padding: 11px; border-radius: 7px; background: var(--canvas); }
+.drilldown-stats span { display: block; color: var(--muted); font-size: 11px; }
+.drilldown-stats strong { display: block; margin-top: 4px; font-size: 18px; }
+.drilldown-records { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 12px; }
+.drilldown-records button { display: grid; grid-template-columns: auto 1fr auto; gap: 9px; padding: 9px; border: 1px solid var(--line); border-radius: 6px; background: white; text-align: left; }
+.drilldown-records span { color: var(--muted); font-size: 11px; }
+.drilldown-records b { color: var(--green-700); }
 .offline-panel { margin-bottom: 16px; border-left: 4px solid var(--amber); }
 .draft-end { display: flex !important; grid-auto-flow: column; align-items: center; gap: 8px !important; }
 .ledger-panel { margin-top: 16px; }
@@ -240,6 +250,8 @@ th { position: sticky; top: 0; background: #eaf3ee; color: var(--green-800); }
   .quick-item-gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .donut-layout { grid-template-columns: 110px 1fr; }
   .donut { width: 110px; }
+  .drilldown-stats { grid-template-columns: repeat(2, 1fr); }
+  .drilldown-records { grid-template-columns: 1fr; }
   .bar-row { grid-template-columns: 90px 1fr auto; }
   .profile-modal { padding: 22px 18px; }
 }
