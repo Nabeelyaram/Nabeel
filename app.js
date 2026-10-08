@@ -22,6 +22,8 @@
     trash: [],
     activity: [],
     ledger: [],
+    personalKhata: [],
+    personalKhataFilter: "all",
     dataLoaded: false,
     deferredPrompt: null,
     syncing: false,
@@ -184,6 +186,7 @@
     if (name === "history") renderHistory();
     if (name === "analytics") renderAnalytics();
     if (name === "items") renderItems();
+    if (name === "khata") renderPersonalKhata();
     if (name === "activity" && IS_ADMIN) renderActivity();
   }
 
@@ -210,14 +213,19 @@
     state.ledger = IS_ADMIN ? await api("store_ledger?select=*&order=entry_date.desc,created_at.desc") || [] : [];
   }
 
+  async function loadPersonalKhata() {
+    state.personalKhata = await api("personal_khata_entries?select=*&order=entry_at.desc,created_at.desc") || [];
+  }
+
   async function loadActivity() { state.activity = IS_ADMIN ? await api("store_audit?select=*&order=occurred_at.desc&limit=500") || [] : []; }
 
   async function refreshAll() {
-    await Promise.all([loadItems(), loadEntries(), loadLedger(), loadActivity()]);
+    await Promise.all([loadItems(), loadEntries(), loadLedger(), loadPersonalKhata(), loadActivity()]);
     renderDashboard();
     renderHistory();
     renderAnalytics();
     renderItems();
+    renderPersonalKhata();
     renderQuickItems();
     if (IS_ADMIN) { renderTrash(); renderActivity(); }
     runAutoBackup();
@@ -519,6 +527,103 @@
     } catch { toast("Delete failed"); }
   }
 
+  function pakistanDateTime(value) {
+    return new Intl.DateTimeFormat("en-PK", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" }).format(new Date(value));
+  }
+
+  function pakistanDateTimeInput(value = new Date()) {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(value));
+    const get = (type) => parts.find((part) => part.type === type)?.value || "00";
+    return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+  }
+
+  function personalKhataTotals() {
+    return state.personalKhata.reduce((acc, row) => {
+      const amount = Number(row.amount || 0);
+      if (row.entry_type === "returned") acc.returned += amount;
+      else acc.borrowed += amount;
+      return acc;
+    }, { borrowed: 0, returned: 0 });
+  }
+
+  function resetPersonalKhataForm() {
+    if (!IS_ADMIN) return;
+    $("personalKhataForm").reset();
+    $("personalKhataId").value = "";
+    $("personalKhataDateTime").value = pakistanDateTimeInput();
+    $("personalKhataType").value = "borrowed";
+    $("personalKhataSaveBtn").textContent = "Khata mein add karein";
+    $("cancelPersonalKhataEdit").classList.add("hidden");
+  }
+
+  function renderPersonalKhata() {
+    const totals = personalKhataTotals();
+    const outstanding = totals.borrowed - totals.returned;
+    $("personalKhataBorrowed").textContent = money(totals.borrowed);
+    $("personalKhataReturned").textContent = money(totals.returned);
+    $("personalKhataOutstanding").textContent = money(Math.abs(outstanding));
+    $("personalKhataOutstandingLabel").textContent = outstanding >= 0 ? "Aapi ko dene hain" : "Aapi se wapas lene hain";
+    document.querySelectorAll("[data-personal-khata-filter]").forEach((button) => button.classList.toggle("active", button.dataset.personalKhataFilter === state.personalKhataFilter));
+    const rows = state.personalKhata.filter((row) => state.personalKhataFilter === "all" || row.entry_type === state.personalKhataFilter);
+    $("personalKhataList").innerHTML = rows.length ? rows.map((row) => {
+      const taken = row.entry_type !== "returned";
+      return `<article class="personal-khata-row ${taken ? "taken" : "returned"}">
+        <div class="khata-row-icon">${taken ? "↑" : "↓"}</div>
+        <div class="khata-row-main"><div class="khata-row-title"><strong>${escapeHtml(row.person_name)}</strong><span class="khata-badge ${taken ? "taken" : "returned"}">${taken ? "Aapi se liye" : "Aapi ko wapas kiye"}</span></div><span>${escapeHtml(row.note || "Koi note nahi")}</span><small>${pakistanDateTime(row.entry_at)}</small></div>
+        <div class="khata-row-end"><strong>${taken ? "+" : "−"}${money(row.amount)}</strong>${IS_ADMIN ? `<div><button class="row-action" data-edit-personal-khata="${row.id}">Edit</button><button class="row-action danger" data-delete-personal-khata="${row.id}">Remove</button></div>` : ""}</div>
+      </article>`;
+    }).join("") : `<p class="empty">Is filter mein koi khata entry nahi.</p>`;
+    if (IS_ADMIN) {
+      $("personalKhataList").querySelectorAll("[data-edit-personal-khata]").forEach((button) => button.addEventListener("click", () => editPersonalKhata(button.dataset.editPersonalKhata)));
+      $("personalKhataList").querySelectorAll("[data-delete-personal-khata]").forEach((button) => button.addEventListener("click", () => deletePersonalKhata(button.dataset.deletePersonalKhata)));
+    }
+  }
+
+  async function savePersonalKhata(event) {
+    event.preventDefault();
+    const id = $("personalKhataId").value;
+    const personName = "Aapi";
+    const amount = Number($("personalKhataAmount").value || 0);
+    const localDateTime = $("personalKhataDateTime").value;
+    if (amount <= 0 || !localDateTime) return toast("Amount aur date/time zaroori hai");
+    const body = { person_name: personName, amount, entry_type: $("personalKhataType").value, note: $("personalKhataNote").value.trim(), entry_at: new Date(`${localDateTime}:00+05:00`).toISOString(), updated_by: state.profile || "Admin", updated_at: new Date().toISOString() };
+    try {
+      if (id) await api(`personal_khata_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body), prefer: "return=minimal" });
+      else await api("personal_khata_entries", { method: "POST", body: JSON.stringify({ ...body, created_by: state.profile || "Admin" }), prefer: "return=minimal" });
+      await logActivity(id ? "aapi_khata_edit" : "aapi_khata_add", "aapi_khata", id || null, { amount, type: body.entry_type });
+      await loadPersonalKhata();
+      resetPersonalKhataForm();
+      renderPersonalKhata();
+      toast(id ? "Khata entry update ho gayi" : "Khata entry add ho gayi");
+    } catch (error) { console.error(error); toast("Khata save failed. New SQL migration run karein."); }
+  }
+
+  function editPersonalKhata(id) {
+    const row = state.personalKhata.find((entry) => entry.id === id);
+    if (!row || !IS_ADMIN) return;
+    $("personalKhataId").value = row.id;
+    $("personalKhataPerson").value = row.person_name;
+    $("personalKhataAmount").value = row.amount;
+    $("personalKhataType").value = row.entry_type;
+    $("personalKhataNote").value = row.note || "";
+    $("personalKhataDateTime").value = pakistanDateTimeInput(row.entry_at);
+    $("personalKhataSaveBtn").textContent = "Changes save karein";
+    $("cancelPersonalKhataEdit").classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function deletePersonalKhata(id) {
+    const row = state.personalKhata.find((entry) => entry.id === id);
+    if (!row || !confirm(`Remove Aapi khata entry?\n\n${money(row.amount)}\n\nYe action undo nahi hoga.`)) return;
+    try {
+      await api(`personal_khata_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" });
+      await logActivity("aapi_khata_delete", "aapi_khata", id, { amount: row.amount, type: row.entry_type });
+      await loadPersonalKhata();
+      renderPersonalKhata();
+      toast("Khata entry remove ho gayi");
+    } catch (error) { console.error(error); toast("Khata remove failed"); }
+  }
+
   function updateRemaining() {
     const amount = Math.max(0, Number($("totalAmount").value || 0) - Number($("paidAmount").value || 0));
     $("remainingAmount").value = money(amount);
@@ -596,7 +701,7 @@
       await refreshAll();
       showView("dashboard");
       toast(id ? "Record updated" : "Saman save ho gaya");
-      if (!id) scheduleAutoBackup();
+      scheduleAutoBackup();
     } catch (error) {
       console.error(error);
       if (!id && (error instanceof TypeError || !navigator.onLine)) return queueOfflineEntry(baseRow);
@@ -716,6 +821,7 @@
       await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: new Date().toISOString(), modified_by: state.profile }), prefer: "return=minimal" });
       await logActivity("entry_delete", "purchase", id, { item: row.item_name, amount: row.total_amount });
       await refreshAll();
+      scheduleAutoBackup();
       showUndoDelete(id);
     } catch (error) {
       console.error(error);
@@ -729,7 +835,7 @@
   }
 
   async function restoreEntry(id) {
-    try { await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: null, modified_by: state.profile }), prefer: "return=minimal" }); await logActivity("entry_restore", "purchase", id, {}); $("undoToast").classList.add("hidden"); await refreshAll(); toast("Record restore ho gaya"); } catch { toast("Restore failed"); }
+    try { await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ deleted_at: null, modified_by: state.profile }), prefer: "return=minimal" }); await logActivity("entry_restore", "purchase", id, {}); $("undoToast").classList.add("hidden"); await refreshAll(); scheduleAutoBackup(); toast("Record restore ho gaya"); } catch { toast("Restore failed"); }
   }
 
   async function permanentlyDeleteEntry(id) {
@@ -737,7 +843,7 @@
     const age = Date.now() - new Date(row.deleted_at).getTime();
     if (age < 30 * 86400000) return toast("Permanent delete 30 din baad available hoga");
     if (!confirm(`PERMANENT DELETE:\n\n${row.item_name} · ${money(row.total_amount)}\n\nYe action undo nahi ho sakta. Delete forever?`)) return;
-    try { await logActivity("entry_permanent_delete", "purchase", id, { item: row.item_name, amount: row.total_amount }); await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }); await refreshAll(); toast("Record permanently deleted"); } catch { toast("Permanent delete failed"); }
+    try { await logActivity("entry_permanent_delete", "purchase", id, { item: row.item_name, amount: row.total_amount }); await api(`store_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }); await refreshAll(); scheduleAutoBackup(); toast("Record permanently deleted"); } catch { toast("Permanent delete failed"); }
   }
 
   function renderTrash() {
@@ -859,6 +965,21 @@
     try { const parent = await window.showDirectoryPicker({ mode: "readwrite" }); const handle = await parent.getDirectoryHandle("Maqsood Karyana Backups", { create: true }); await saveBackupHandle(handle); await updateBackupStatus(); toast("Maqsood Karyana Backups folder connected"); } catch (error) { if (error.name !== "AbortError") toast("Folder connect nahi hua"); }
   }
 
+  async function connectCloudBackup() {
+    if (!IS_ADMIN) return;
+    try {
+      const response = await fetch(`${config.supabaseUrl}/functions/v1/onedrive-oauth-callback?action=start`, {
+        headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}`, "X-Store-Session": state.token }
+      });
+      const result = await response.json();
+      if (!response.ok || !result.authorizationUrl) throw new Error(result.error || "Connect unavailable");
+      window.location.assign(result.authorizationUrl);
+    } catch (error) {
+      console.error(error);
+      toast("Cloud backup setup abhi deploy nahi hua. Admin package aur Supabase functions deploy karein.");
+    }
+  }
+
   function scheduleAutoBackup() {
     if (!IS_ADMIN) return;
     localStorage.setItem(BACKUP_DUE_KEY, String(Date.now() + 3600000));
@@ -926,7 +1047,14 @@
     $("printBtn").addEventListener("click", () => window.print());
     $("itemForm").addEventListener("submit", addItem);
     $("ledgerForm").addEventListener("submit", saveLedger);
+    $("personalKhataForm")?.addEventListener("submit", savePersonalKhata);
+    $("cancelPersonalKhataEdit")?.addEventListener("click", resetPersonalKhataForm);
+    document.querySelectorAll("[data-personal-khata-filter]").forEach((button) => button.addEventListener("click", () => {
+      state.personalKhataFilter = button.dataset.personalKhataFilter;
+      renderPersonalKhata();
+    }));
     $("connectBackupFolder").addEventListener("click", connectBackupFolder);
+    $("connectCloudBackup").addEventListener("click", connectCloudBackup);
     $("backupNowBtn").addEventListener("click", () => runAutoBackup(true));
     $("undoDeleteBtn").addEventListener("click", () => restoreEntry($("undoToast").dataset.entryId));
     document.querySelectorAll("[data-install-app]").forEach((button) => button.addEventListener("click", async () => {
@@ -971,13 +1099,14 @@
     $("analyticsFrom").value = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     $("analyticsTo").value = today();
     $("ledgerDate").value = today();
+    resetPersonalKhataForm();
     updateInstallButtons();
     renderOfflineDrafts();
     const updateEntryClock = () => { $("entryCurrentDateTime").textContent = new Intl.DateTimeFormat("en-PK", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" }).format(new Date()); };
     updateEntryClock(); setInterval(updateEntryClock, 30000);
     updateBackupStatus(); runAutoBackup(); setInterval(() => runAutoBackup(), 60000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) runAutoBackup(); });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=16").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=21").catch(console.error);
     restoreSession();
   }
 

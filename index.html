@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=6">
   <link rel="icon" href="app-icon-192.png?v=6">
   <link rel="apple-touch-icon" href="app-icon-192.png?v=6">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -67,6 +67,7 @@
       <button class="nav-button active" data-view="dashboard" data-admin-only>Overview</button>
       <button class="nav-button" data-view="entry">Add Saman</button>
       <button class="nav-button" data-view="history">History</button>
+      <button class="nav-button" data-view="khata">Aapi Khata</button>
       <button class="nav-button" data-view="analytics" data-admin-only>Analytics</button>
       <button class="nav-button" data-view="activity" data-admin-only>User Activity</button>
       <button class="nav-button" data-view="items">Items</button>
@@ -183,7 +184,7 @@
         </div>
         <article class="panel backup-panel" data-admin-only>
           <div><p class="eyebrow">OneDrive safety backup</p><h3>History auto backup</h3><p id="backupStatus">Backup folder connect nahi hai.</p></div>
-          <div class="button-row"><button id="connectBackupFolder" class="primary" type="button">OneDrive folder select karein</button><button id="backupNowBtn" class="secondary" type="button">Backup now</button></div>
+          <div class="button-row"><button id="connectCloudBackup" class="primary" type="button">Connect OneDrive cloud</button><button id="connectBackupFolder" class="secondary" type="button">Local folder select karein</button><button id="backupNowBtn" class="secondary" type="button">Backup now</button></div>
         </article>
         <div class="panel filters">
           <label><span>From</span><input id="filterFrom" type="date"></label>
@@ -196,6 +197,35 @@
         <div id="historySummary" class="summary-strip"></div>
         <div id="historyTable" class="table-wrap panel"></div>
         <article class="panel trash-panel" data-admin-only><div class="panel-head"><div><p class="eyebrow">30-day safety</p><h3>Trash</h3></div><span id="trashCount">0 records</span></div><div id="trashList" class="record-list"></div></article>
+      </section>
+
+      <section id="khataView" class="view hidden">
+        <div class="page-heading">
+          <div><p class="eyebrow">Aapi se udhar</p><h2>Aapi Khata</h2><p class="khata-intro">Aapi (bari behen) se liye hue aur un ko wapas kiye hue paison ka saaf record.</p></div>
+      </div>
+        <section class="khata-summary" aria-label="Khata summary">
+          <article><span>Aapi se liye</span><strong id="personalKhataBorrowed">Rs 0</strong><small>Liye hue udhar</small></article>
+          <article><span>Aapi ko wapas kiye</span><strong id="personalKhataReturned">Rs 0</strong><small>Wapas ki hui raqam</small></article>
+          <article class="khata-balance-card"><span id="personalKhataOutstandingLabel">Aapi ko dene hain</span><strong id="personalKhataOutstanding">Rs 0</strong><small>Current balance</small></article>
+        </section>
+
+        <article class="panel personal-khata-form-card" data-admin-only>
+          <div class="panel-head"><div><p class="eyebrow">Admin control</p><h3>Aapi ka naya udhar record</h3></div><span class="khata-admin-tag">Admin only</span></div>
+          <form id="personalKhataForm" class="personal-khata-form">
+            <input id="personalKhataId" type="hidden">
+            <input id="personalKhataPerson" type="hidden" value="Aapi">
+            <label><span>Amount</span><input id="personalKhataAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Rs 0" required></label>
+            <label><span>Type</span><select id="personalKhataType"><option value="borrowed">Aapi se liye</option><option value="returned">Aapi ko wapas kiye</option></select></label>
+            <label><span>Date & time</span><input id="personalKhataDateTime" type="datetime-local" required></label>
+            <label class="khata-note"><span>Note</span><input id="personalKhataNote" maxlength="240" placeholder="Optional detail"></label>
+            <div class="form-actions"><button id="personalKhataSaveBtn" class="primary" type="submit">Khata mein add karein</button><button id="cancelPersonalKhataEdit" class="secondary hidden" type="button">Cancel edit</button></div>
+          </form>
+        </article>
+
+        <article class="panel personal-khata-history">
+          <div class="panel-head"><div><p class="eyebrow">Live record</p><h3>Aapi Khata history</h3></div><div class="khata-filters" role="group" aria-label="Khata filter"><button type="button" class="active" data-personal-khata-filter="all">Sab</button><button type="button" data-personal-khata-filter="borrowed">Aapi se liye</button><button type="button" data-personal-khata-filter="returned">Wapas kiye</button></div></div>
+          <div id="personalKhataList" class="personal-khata-list"></div>
+        </article>
       </section>
 
       <section id="analyticsView" class="view hidden" data-admin-only>
@@ -231,6 +261,7 @@
       <button class="nav-button active" data-view="dashboard" data-admin-only><span>⌂</span>Home</button>
       <button class="nav-button" data-view="entry"><span>＋</span>Add</button>
       <button class="nav-button" data-view="history"><span>▤</span>History</button>
+      <button class="nav-button" data-view="khata"><span>₨</span>Aapi</button>
       <button class="nav-button" data-view="analytics" data-admin-only><span>▥</span>Insights</button>
       <button class="nav-button" data-view="activity" data-admin-only><span>◷</span>Activity</button>
       <button class="nav-button" data-view="items"><span>⌄</span>Items</button>
@@ -251,8 +282,8 @@
     </form>
   </div>
 
-  <script src="mode.js?v=17"></script>
+  <script src="mode.js?v=21"></script>
   <script src="config.js?v=8"></script>
-  <script src="app.js?v=17"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>
