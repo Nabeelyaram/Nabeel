@@ -192,6 +192,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .khata-badge { padding: 3px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
 .khata-badge.taken { background: #fff0d6; color: #8c5700; }.khata-badge.returned { background: #e5f1fb; color: #226086; }
 .khata-row-end { display: grid; justify-items: end; gap: 8px; text-align: right; }.khata-row-end > strong { color: var(--green-800); }.personal-khata-row.returned .khata-row-end > strong { color: #28678d; }.khata-row-end > div { display: flex; gap: 5px; }
+.other-khata-section { margin-top: 30px; padding-top: 28px; border-top: 1px dashed #b9cec1; }
+.other-khata-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.other-khata-heading h3 { font-size: 23px; }.other-khata-heading p:not(.eyebrow) { margin: 6px 0 0; color: var(--muted); }
+.other-khata-heading > span { padding: 8px 11px; border-radius: 999px; background: #fff0d6; color: #8c5700; font-size: 11px; font-weight: 800; }
+.other-khata-summary article:nth-child(2) { background: linear-gradient(135deg, #ffffff 10%, #edf3fb); }.other-khata-summary article:nth-child(2) strong { color: #28678d; }
+.other-people-panel { margin-bottom: 16px; background: linear-gradient(135deg, #fff, #f8fbf9); }
+.other-khata-people { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.other-person-card { display: grid; gap: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+.other-person-card > div:first-child { display: grid; gap: 4px; }.other-person-card > div:first-child > span { color: var(--muted); font-size: 11px; }
+.person-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }.person-totals span { display: grid; gap: 2px; color: var(--muted); font-size: 10px; }.person-totals b { color: var(--ink); font-size: 12px; }.person-totals > strong { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--line); color: var(--green-800); }
 .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .record-list { display: grid; }
 .record-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e7ece9; }
@@ -300,6 +310,7 @@ th { position: sticky; top: 0; background: #eaf3ee; color: var(--green-800); }
   .personal-khata-history .panel-head { align-items: flex-start; gap: 12px; flex-direction: column; }
   .personal-khata-row { grid-template-columns: 38px minmax(0, 1fr); padding: 13px 15px; }
   .khata-row-end { grid-column: 2; justify-items: start; text-align: left; }
+  .other-khata-heading { align-items: flex-start; flex-direction: column; }.other-khata-people { grid-template-columns: 1fr; }
   .panel { padding: 15px; }
   .backup-panel { align-items: flex-start; flex-direction: column; }
   .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }

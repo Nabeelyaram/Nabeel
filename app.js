@@ -24,6 +24,8 @@
     ledger: [],
     personalKhata: [],
     personalKhataFilter: "all",
+    otherKhata: [],
+    otherKhataFilter: "all",
     dataLoaded: false,
     deferredPrompt: null,
     syncing: false,
@@ -217,15 +219,20 @@
     state.personalKhata = await api("personal_khata_entries?select=*&order=entry_at.desc,created_at.desc") || [];
   }
 
+  async function loadOtherKhata() {
+    state.otherKhata = await api("other_khata_entries?select=*&order=entry_at.desc,created_at.desc") || [];
+  }
+
   async function loadActivity() { state.activity = IS_ADMIN ? await api("store_audit?select=*&order=occurred_at.desc&limit=500") || [] : []; }
 
   async function refreshAll() {
-    await Promise.all([loadItems(), loadEntries(), loadLedger(), loadPersonalKhata(), loadActivity()]);
+    await Promise.all([loadItems(), loadEntries(), loadLedger(), loadPersonalKhata(), loadOtherKhata(), loadActivity()]);
     renderDashboard();
     renderHistory();
     renderAnalytics();
     renderItems();
     renderPersonalKhata();
+    renderOtherKhata();
     renderQuickItems();
     if (IS_ADMIN) { renderTrash(); renderActivity(); }
     runAutoBackup();
@@ -594,6 +601,7 @@
       await loadPersonalKhata();
       resetPersonalKhataForm();
       renderPersonalKhata();
+      scheduleAutoBackup();
       toast(id ? "Khata entry update ho gayi" : "Khata entry add ho gayi");
     } catch (error) { console.error(error); toast("Khata save failed. New SQL migration run karein."); }
   }
@@ -620,10 +628,94 @@
       await logActivity("aapi_khata_delete", "aapi_khata", id, { amount: row.amount, type: row.entry_type });
       await loadPersonalKhata();
       renderPersonalKhata();
+      scheduleAutoBackup();
       toast("Khata entry remove ho gayi");
     } catch (error) { console.error(error); toast("Khata remove failed"); }
   }
 
+  function otherKhataTotals(rows = state.otherKhata) {
+    return rows.reduce((acc, row) => {
+      const amount = Number(row.amount || 0);
+      if (row.entry_type === "payable") acc.payable += amount;
+      else acc.receivable += amount;
+      return acc;
+    }, { receivable: 0, payable: 0 });
+  }
+
+  function resetOtherKhataForm() {
+    if (!IS_ADMIN) return;
+    $("otherKhataForm").reset();
+    $("otherKhataId").value = "";
+    $("otherKhataDateTime").value = pakistanDateTimeInput();
+    $("otherKhataType").value = "receivable";
+    $("otherKhataSaveBtn").textContent = "Other Khata mein add karein";
+    $("cancelOtherKhataEdit").classList.add("hidden");
+  }
+
+  function renderOtherKhata() {
+    const totals = otherKhataTotals();
+    $("otherKhataReceivable").textContent = money(totals.receivable);
+    $("otherKhataPayable").textContent = money(totals.payable);
+    $("otherKhataNet").textContent = money(Math.abs(totals.receivable - totals.payable));
+    $("otherKhataNetLabel").textContent = totals.receivable >= totals.payable ? "Kul lene hain" : "Kul dene hain";
+    document.querySelectorAll("[data-other-khata-filter]").forEach((button) => button.classList.toggle("active", button.dataset.otherKhataFilter === state.otherKhataFilter));
+    const people = new Map();
+    state.otherKhata.forEach((row) => {
+      const key = row.person_name.trim().toLowerCase();
+      const person = people.get(key) || { name: row.person_name, receivable: 0, payable: 0 };
+      if (row.entry_type === "payable") person.payable += Number(row.amount || 0); else person.receivable += Number(row.amount || 0);
+      people.set(key, person);
+    });
+    const personRows = [...people.values()].sort((a, b) => a.name.localeCompare(b.name, "en"));
+    $("otherKhataPeople").innerHTML = personRows.length ? personRows.map((person) => {
+      const balance = person.receivable - person.payable;
+      return `<article class="other-person-card"><div><strong>${escapeHtml(person.name)}</strong><span>${balance >= 0 ? "Is person se lene hain" : "Is person ko dene hain"}</span></div><div class="person-totals"><span>Lene <b>${money(person.receivable)}</b></span><span>Dene <b>${money(person.payable)}</b></span><strong>${money(Math.abs(balance))}</strong></div></article>`;
+    }).join("") : `<p class="empty">Abhi kisi person ka Other Khata record nahi.</p>`;
+    const rows = state.otherKhata.filter((row) => state.otherKhataFilter === "all" || row.entry_type === state.otherKhataFilter);
+    $("otherKhataList").innerHTML = rows.length ? rows.map((row) => {
+      const giving = row.entry_type === "payable";
+      return `<article class="personal-khata-row ${giving ? "returned" : "taken"}"><div class="khata-row-icon">${giving ? "↑" : "↓"}</div><div class="khata-row-main"><div class="khata-row-title"><strong>${escapeHtml(row.person_name)}</strong><span class="khata-badge ${giving ? "returned" : "taken"}">${giving ? "Dene hain" : "Lene hain"}</span></div><span>${escapeHtml(row.note || "Koi note nahi")}</span><small>${pakistanDateTime(row.entry_at)}</small></div><div class="khata-row-end"><strong>${giving ? "−" : "+"}${money(row.amount)}</strong>${IS_ADMIN ? `<div><button class="row-action" data-edit-other-khata="${row.id}">Edit</button><button class="row-action danger" data-delete-other-khata="${row.id}">Remove</button></div>` : ""}</div></article>`;
+    }).join("") : `<p class="empty">Is filter mein koi Other Khata entry nahi.</p>`;
+    if (IS_ADMIN) {
+      $("otherKhataList").querySelectorAll("[data-edit-other-khata]").forEach((button) => button.addEventListener("click", () => editOtherKhata(button.dataset.editOtherKhata)));
+      $("otherKhataList").querySelectorAll("[data-delete-other-khata]").forEach((button) => button.addEventListener("click", () => deleteOtherKhata(button.dataset.deleteOtherKhata)));
+    }
+  }
+
+  async function saveOtherKhata(event) {
+    event.preventDefault();
+    const id = $("otherKhataId").value;
+    const personName = $("otherKhataPerson").value.trim();
+    const amount = Number($("otherKhataAmount").value || 0);
+    const localDateTime = $("otherKhataDateTime").value;
+    if (!personName || amount <= 0 || !localDateTime) return toast("Person ka naam, amount aur date/time zaroori hai");
+    const body = { person_name: personName, amount, entry_type: $("otherKhataType").value, note: $("otherKhataNote").value.trim(), entry_at: new Date(`${localDateTime}:00+05:00`).toISOString(), updated_by: state.profile || "Admin", updated_at: new Date().toISOString() };
+    try {
+      if (id) await api(`other_khata_entries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body), prefer: "return=minimal" });
+      else await api("other_khata_entries", { method: "POST", body: JSON.stringify({ ...body, created_by: state.profile || "Admin" }), prefer: "return=minimal" });
+      await logActivity(id ? "other_khata_edit" : "other_khata_add", "other_khata", id || null, { person: personName, amount, type: body.entry_type });
+      await loadOtherKhata(); resetOtherKhataForm(); renderOtherKhata(); scheduleAutoBackup();
+      toast(id ? "Other Khata update ho gaya" : "Other Khata entry add ho gayi");
+    } catch (error) { console.error(error); toast("Other Khata save failed. New SQL migration run karein."); }
+  }
+
+  function editOtherKhata(id) {
+    const row = state.otherKhata.find((entry) => entry.id === id);
+    if (!row || !IS_ADMIN) return;
+    $("otherKhataId").value = row.id; $("otherKhataPerson").value = row.person_name; $("otherKhataAmount").value = row.amount; $("otherKhataType").value = row.entry_type; $("otherKhataNote").value = row.note || ""; $("otherKhataDateTime").value = pakistanDateTimeInput(row.entry_at);
+    $("otherKhataSaveBtn").textContent = "Changes save karein"; $("cancelOtherKhataEdit").classList.remove("hidden");
+    $("otherKhataForm").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  async function deleteOtherKhata(id) {
+    const row = state.otherKhata.find((entry) => entry.id === id);
+    if (!row || !confirm(`Remove Other Khata entry?\n\n${row.person_name} · ${money(row.amount)}\n\nYe action undo nahi hoga.`)) return;
+    try {
+      await api(`other_khata_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" });
+      await logActivity("other_khata_delete", "other_khata", id, { person: row.person_name, amount: row.amount, type: row.entry_type });
+      await loadOtherKhata(); renderOtherKhata(); scheduleAutoBackup(); toast("Other Khata entry remove ho gayi");
+    } catch (error) { console.error(error); toast("Other Khata remove failed"); }
+  }
   function updateRemaining() {
     const amount = Math.max(0, Number($("totalAmount").value || 0) - Number($("paidAmount").value || 0));
     $("remainingAmount").value = money(amount);
@@ -929,7 +1021,8 @@
     const headers = ["Record type", "Date day time", "Item / Aapi detail", "Amount", "Entry by", "Note"];
     const purchases = state.entries.map((row) => ["Purchase", savedDayTime(row), row.item_name, row.total_amount, row.entered_by || "Purana record", row.note || ""]);
     const aapiRows = state.personalKhata.map((row) => [row.entry_type === "returned" ? "Aapi ko wapas kiye" : "Aapi se liye", pakistanDateTime(row.entry_at), "Aapi", row.amount, row.created_by || "Admin", row.note || ""]);
-    return "\ufeff" + [headers, ...purchases, ...aapiRows].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const otherRows = state.otherKhata.map((row) => [row.entry_type === "payable" ? "Other Khata - dene hain" : "Other Khata - lene hain", pakistanDateTime(row.entry_at), row.person_name, row.amount, row.created_by || "Admin", row.note || ""]);
+    return "\ufeff" + [headers, ...purchases, ...aapiRows, ...otherRows].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
   }
 
   function backupExcelWorkbook() {
@@ -938,13 +1031,15 @@
     const purchaseSheets = months.map((month) => { const rows = state.entries.filter((row) => row.purchase_date.startsWith(month)); const body = rows.map((row) => `<Row><Cell><Data ss:Type="String">${xml(savedDayTime(row))}</Data></Cell><Cell><Data ss:Type="String">${xml(row.item_name)}</Data></Cell><Cell><Data ss:Type="Number">${Number(row.total_amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.entered_by || "Purana record")}</Data></Cell></Row>`).join(""); return `<Worksheet ss:Name="${month}"><Table><Row><Cell><Data ss:Type="String">Date Day Time</Data></Cell><Cell><Data ss:Type="String">Item</Data></Cell><Cell><Data ss:Type="String">Total</Data></Cell><Cell><Data ss:Type="String">Entered By</Data></Cell></Row>${body}</Table></Worksheet>`; }).join("");
     const aapiBody = state.personalKhata.map((row) => `<Row><Cell><Data ss:Type="String">${xml(pakistanDateTime(row.entry_at))}</Data></Cell><Cell><Data ss:Type="String">${xml(row.entry_type === "returned" ? "Aapi ko wapas kiye" : "Aapi se liye")}</Data></Cell><Cell><Data ss:Type="Number">${Number(row.amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.note || "")}</Data></Cell></Row>`).join("");
     const aapiSheet = `<Worksheet ss:Name="Aapi Khata"><Table><Row><Cell><Data ss:Type="String">Date Day Time</Data></Cell><Cell><Data ss:Type="String">Type</Data></Cell><Cell><Data ss:Type="String">Amount</Data></Cell><Cell><Data ss:Type="String">Note</Data></Cell></Row>${aapiBody}</Table></Worksheet>`;
-    return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${purchaseSheets || `<Worksheet ss:Name="History"><Table/></Worksheet>`}${aapiSheet}</Workbook>`;
+    const otherBody = state.otherKhata.map((row) => `<Row><Cell><Data ss:Type="String">${xml(pakistanDateTime(row.entry_at))}</Data></Cell><Cell><Data ss:Type="String">${xml(row.person_name)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.entry_type === "payable" ? "Dene hain" : "Lene hain")}</Data></Cell><Cell><Data ss:Type="Number">${Number(row.amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.note || "")}</Data></Cell></Row>`).join("");
+    const otherSheet = `<Worksheet ss:Name="Other Khata"><Table><Row><Cell><Data ss:Type="String">Date Day Time</Data></Cell><Cell><Data ss:Type="String">Person</Data></Cell><Cell><Data ss:Type="String">Hisaab</Data></Cell><Cell><Data ss:Type="String">Amount</Data></Cell><Cell><Data ss:Type="String">Note</Data></Cell></Row>${otherBody}</Table></Worksheet>`;
+    return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${purchaseSheets || `<Worksheet ss:Name="History"><Table/></Worksheet>`}${aapiSheet}${otherSheet}</Workbook>`;
   }
 
   function backupPdfBlob() {
     const clean = (value) => String(value).normalize("NFKD").replace(/[^\x20-\x7E]/g, "?").replace(/([\\()])/g, "\\$1");
     const aapiTotals = personalKhataTotals();
-    const lines = ["Maqsood Karyana Store - Complete History", `Generated: ${new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi" })}`, `Purchase entries: ${state.entries.length}   Total: ${money(totals(state.entries).total)}`, `Aapi Khata: Aapi se liye ${money(aapiTotals.borrowed)} | Aapi ko wapas kiye ${money(aapiTotals.returned)} | Dene hain ${money(aapiTotals.borrowed - aapiTotals.returned)}`, "", "PURCHASE HISTORY", ...state.entries.map((row) => `${savedDayTime(row)} | ${row.item_name} | ${money(row.total_amount)} | ${row.entered_by || "Purana record"}`), "", "AAPI KHATA", ...state.personalKhata.map((row) => `${pakistanDateTime(row.entry_at)} | ${row.entry_type === "returned" ? "Aapi ko wapas kiye" : "Aapi se liye"} | ${money(row.amount)} | ${row.note || "-"}`)];    const wrapped = lines.flatMap((line) => { const text = clean(line); const parts = []; for (let i = 0; i < text.length; i += 92) parts.push(text.slice(i, i + 92)); return parts.length ? parts : [""]; });
+    const lines = ["Maqsood Karyana Store - Complete History", `Generated: ${new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi" })}`, `Purchase entries: ${state.entries.length}   Total: ${money(totals(state.entries).total)}`, `Aapi Khata: Aapi se liye ${money(aapiTotals.borrowed)} | Aapi ko wapas kiye ${money(aapiTotals.returned)} | Dene hain ${money(aapiTotals.borrowed - aapiTotals.returned)}`, "", "PURCHASE HISTORY", ...state.entries.map((row) => `${savedDayTime(row)} | ${row.item_name} | ${money(row.total_amount)} | ${row.entered_by || "Purana record"}`), "", "AAPI KHATA", ...state.personalKhata.map((row) => `${pakistanDateTime(row.entry_at)} | ${row.entry_type === "returned" ? "Aapi ko wapas kiye" : "Aapi se liye"} | ${money(row.amount)} | ${row.note || "-"}`), "", "OTHER KHATA", ...state.otherKhata.map((row) => `${pakistanDateTime(row.entry_at)} | ${row.person_name} | ${row.entry_type === "payable" ? "Dene hain" : "Lene hain"} | ${money(row.amount)} | ${row.note || "-"}`)];    const wrapped = lines.flatMap((line) => { const text = clean(line); const parts = []; for (let i = 0; i < text.length; i += 92) parts.push(text.slice(i, i + 92)); return parts.length ? parts : [""]; });
     const pages = []; for (let i = 0; i < wrapped.length; i += 48) pages.push(wrapped.slice(i, i + 48));
     const objects = [null, "<< /Type /Catalog /Pages 2 0 R >>", ""];
     const fontId = 3 + pages.length * 2; const pageIds = [];
@@ -1052,6 +1147,12 @@
     $("ledgerForm").addEventListener("submit", saveLedger);
     $("personalKhataForm")?.addEventListener("submit", savePersonalKhata);
     $("cancelPersonalKhataEdit")?.addEventListener("click", resetPersonalKhataForm);
+    $("otherKhataForm")?.addEventListener("submit", saveOtherKhata);
+    $("cancelOtherKhataEdit")?.addEventListener("click", resetOtherKhataForm);
+    document.querySelectorAll("[data-other-khata-filter]").forEach((button) => button.addEventListener("click", () => {
+      state.otherKhataFilter = button.dataset.otherKhataFilter;
+      renderOtherKhata();
+    }));
     document.querySelectorAll("[data-personal-khata-filter]").forEach((button) => button.addEventListener("click", () => {
       state.personalKhataFilter = button.dataset.personalKhataFilter;
       renderPersonalKhata();
@@ -1103,13 +1204,14 @@
     $("analyticsTo").value = today();
     $("ledgerDate").value = today();
     resetPersonalKhataForm();
+    resetOtherKhataForm();
     updateInstallButtons();
     renderOfflineDrafts();
     const updateEntryClock = () => { $("entryCurrentDateTime").textContent = new Intl.DateTimeFormat("en-PK", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" }).format(new Date()); };
     updateEntryClock(); setInterval(updateEntryClock, 30000);
     updateBackupStatus(); runAutoBackup(); setInterval(() => runAutoBackup(), 60000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) runAutoBackup(); });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=22").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=23").catch(console.error);
     restoreSession();
   }
 
