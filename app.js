@@ -633,15 +633,24 @@
     } catch (error) { console.error(error); toast("Khata remove failed"); }
   }
 
-  function otherKhataTotals(rows = state.otherKhata) {
-    return rows.reduce((acc, row) => {
-      const amount = Number(row.amount || 0);
-      if (row.entry_type === "payable") acc.payable += amount;
-      else acc.receivable += amount;
-      return acc;
-    }, { receivable: 0, payable: 0 });
+  function otherKhataEffect(row) {
+    const amount = Number(row.amount || 0);
+    if (row.entry_type === "receivable") return amount;
+    if (row.entry_type === "payable") return -amount;
+    if (row.entry_type === "receivable_settlement") return -amount;
+    if (row.entry_type === "payable_settlement") return amount;
+    return 0;
   }
 
+  function otherKhataLabel(type) {
+    return ({ receivable: "Maine is ko diye", payable: "Is ne mujhe diye", receivable_settlement: "Is ne mujhe wapas diye", payable_settlement: "Maine is ko wapas diye" })[type] || "Other Khata";
+  }
+
+  function otherKhataTotals(rows = state.otherKhata) {
+    const balances = new Map();
+    rows.forEach((row) => { const key = String(row.person_name || "").trim().toLowerCase(); balances.set(key, (balances.get(key) || 0) + otherKhataEffect(row)); });
+    return [...balances.values()].reduce((acc, balance) => { if (balance >= 0) acc.receivable += balance; else acc.payable += Math.abs(balance); return acc; }, { receivable: 0, payable: 0 });
+  }
   function resetOtherKhataForm() {
     if (!IS_ADMIN) return;
     $("otherKhataForm").reset();
@@ -660,21 +669,12 @@
     $("otherKhataNetLabel").textContent = totals.receivable >= totals.payable ? "Kul lene hain" : "Kul dene hain";
     document.querySelectorAll("[data-other-khata-filter]").forEach((button) => button.classList.toggle("active", button.dataset.otherKhataFilter === state.otherKhataFilter));
     const people = new Map();
-    state.otherKhata.forEach((row) => {
-      const key = row.person_name.trim().toLowerCase();
-      const person = people.get(key) || { name: row.person_name, receivable: 0, payable: 0 };
-      if (row.entry_type === "payable") person.payable += Number(row.amount || 0); else person.receivable += Number(row.amount || 0);
-      people.set(key, person);
-    });
+    state.otherKhata.forEach((row) => { const key = row.person_name.trim().toLowerCase(); const person = people.get(key) || { name: row.person_name, balance: 0 }; person.balance += otherKhataEffect(row); people.set(key, person); });
     const personRows = [...people.values()].sort((a, b) => a.name.localeCompare(b.name, "en"));
-    $("otherKhataPeople").innerHTML = personRows.length ? personRows.map((person) => {
-      const balance = person.receivable - person.payable;
-      return `<article class="other-person-card"><div><strong>${escapeHtml(person.name)}</strong><span>${balance >= 0 ? "Is person se lene hain" : "Is person ko dene hain"}</span></div><div class="person-totals"><span>Lene <b>${money(person.receivable)}</b></span><span>Dene <b>${money(person.payable)}</b></span><strong>${money(Math.abs(balance))}</strong></div></article>`;
-    }).join("") : `<p class="empty">Abhi kisi person ka Other Khata record nahi.</p>`;
-    const rows = state.otherKhata.filter((row) => state.otherKhataFilter === "all" || row.entry_type === state.otherKhataFilter);
+    $("otherKhataPeople").innerHTML = personRows.length ? personRows.map((person) => { const isReceivable = person.balance >= 0; return `<article class="other-person-card"><div><strong>${escapeHtml(person.name)}</strong><span>${isReceivable ? "Is person se lene hain" : "Is person ko dene hain"}</span></div><div class="person-totals"><span>Current balance</span><strong>${money(Math.abs(person.balance))}</strong></div></article>`; }).join("") : `<p class="empty">Abhi kisi person ka Other Khata record nahi.</p>`;    const rows = state.otherKhata.filter((row) => state.otherKhataFilter === "all" || row.entry_type === state.otherKhataFilter);
     $("otherKhataList").innerHTML = rows.length ? rows.map((row) => {
-      const giving = row.entry_type === "payable";
-      return `<article class="personal-khata-row ${giving ? "returned" : "taken"}"><div class="khata-row-icon">${giving ? "↑" : "↓"}</div><div class="khata-row-main"><div class="khata-row-title"><strong>${escapeHtml(row.person_name)}</strong><span class="khata-badge ${giving ? "returned" : "taken"}">${giving ? "Dene hain" : "Lene hain"}</span></div><span>${escapeHtml(row.note || "Koi note nahi")}</span><small>${pakistanDateTime(row.entry_at)}</small></div><div class="khata-row-end"><strong>${giving ? "−" : "+"}${money(row.amount)}</strong>${IS_ADMIN ? `<div><button class="row-action" data-edit-other-khata="${row.id}">Edit</button><button class="row-action danger" data-delete-other-khata="${row.id}">Remove</button></div>` : ""}</div></article>`;
+      const giving = otherKhataEffect(row) < 0;
+      return `<article class="personal-khata-row ${giving ? "returned" : "taken"}"><div class="khata-row-icon">${giving ? "↑" : "↓"}</div><div class="khata-row-main"><div class="khata-row-title"><strong>${escapeHtml(row.person_name)}</strong><span class="khata-badge ${giving ? "returned" : "taken"}">${otherKhataLabel(row.entry_type)}</span></div><span>${escapeHtml(row.note || "Koi note nahi")}</span><small>${pakistanDateTime(row.entry_at)}</small></div><div class="khata-row-end"><strong>${otherKhataEffect(row) < 0 ? "−" : "+"}${money(row.amount)}</strong>${IS_ADMIN ? `<div><button class="row-action" data-edit-other-khata="${row.id}">Edit</button><button class="row-action danger" data-delete-other-khata="${row.id}">Remove</button></div>` : ""}</div></article>`;
     }).join("") : `<p class="empty">Is filter mein koi Other Khata entry nahi.</p>`;
     if (IS_ADMIN) {
       $("otherKhataList").querySelectorAll("[data-edit-other-khata]").forEach((button) => button.addEventListener("click", () => editOtherKhata(button.dataset.editOtherKhata)));
