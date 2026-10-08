@@ -926,22 +926,25 @@
   }
 
   function backupCsv() {
-    const headers = ["Date Day Time","Item","Total","Entered By"];
-    const values = state.entries.map((row) => [savedDayTime(row),row.item_name,row.total_amount,row.entered_by || "Purana record"]);
-    return "\ufeff" + [headers, ...values].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const headers = ["Record type", "Date day time", "Item / Aapi detail", "Amount", "Entry by", "Note"];
+    const purchases = state.entries.map((row) => ["Purchase", savedDayTime(row), row.item_name, row.total_amount, row.entered_by || "Purana record", row.note || ""]);
+    const aapiRows = state.personalKhata.map((row) => [row.entry_type === "returned" ? "Aapi ko wapas kiye" : "Aapi se liye", pakistanDateTime(row.entry_at), "Aapi", row.amount, row.created_by || "Admin", row.note || ""]);
+    return "\ufeff" + [headers, ...purchases, ...aapiRows].map((line) => line.map((value) => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
   }
 
   function backupExcelWorkbook() {
     const xml = (value) => escapeHtml(value).replace(/'/g, "&apos;");
     const months = [...new Set(state.entries.map((row) => row.purchase_date.slice(0, 7)))].sort().reverse();
-    const sheets = months.map((month) => { const rows = state.entries.filter((row) => row.purchase_date.startsWith(month)); const body = rows.map((row) => `<Row><Cell><Data ss:Type="String">${xml(savedDayTime(row))}</Data></Cell><Cell><Data ss:Type="String">${xml(row.item_name)}</Data></Cell><Cell><Data ss:Type="Number">${Number(row.total_amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.entered_by || "Purana record")}</Data></Cell></Row>`).join(""); return `<Worksheet ss:Name="${month}"><Table><Row><Cell><Data ss:Type="String">Date Day Time</Data></Cell><Cell><Data ss:Type="String">Item</Data></Cell><Cell><Data ss:Type="String">Total</Data></Cell><Cell><Data ss:Type="String">Entered By</Data></Cell></Row>${body}</Table></Worksheet>`; }).join("");
-    return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${sheets || `<Worksheet ss:Name="History"><Table/></Worksheet>`}</Workbook>`;
+    const purchaseSheets = months.map((month) => { const rows = state.entries.filter((row) => row.purchase_date.startsWith(month)); const body = rows.map((row) => `<Row><Cell><Data ss:Type="String">${xml(savedDayTime(row))}</Data></Cell><Cell><Data ss:Type="String">${xml(row.item_name)}</Data></Cell><Cell><Data ss:Type="Number">${Number(row.total_amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.entered_by || "Purana record")}</Data></Cell></Row>`).join(""); return `<Worksheet ss:Name="${month}"><Table><Row><Cell><Data ss:Type="String">Date Day Time</Data></Cell><Cell><Data ss:Type="String">Item</Data></Cell><Cell><Data ss:Type="String">Total</Data></Cell><Cell><Data ss:Type="String">Entered By</Data></Cell></Row>${body}</Table></Worksheet>`; }).join("");
+    const aapiBody = state.personalKhata.map((row) => `<Row><Cell><Data ss:Type="String">${xml(pakistanDateTime(row.entry_at))}</Data></Cell><Cell><Data ss:Type="String">${xml(row.entry_type === "returned" ? "Aapi ko wapas kiye" : "Aapi se liye")}</Data></Cell><Cell><Data ss:Type="Number">${Number(row.amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(row.note || "")}</Data></Cell></Row>`).join("");
+    const aapiSheet = `<Worksheet ss:Name="Aapi Khata"><Table><Row><Cell><Data ss:Type="String">Date Day Time</Data></Cell><Cell><Data ss:Type="String">Type</Data></Cell><Cell><Data ss:Type="String">Amount</Data></Cell><Cell><Data ss:Type="String">Note</Data></Cell></Row>${aapiBody}</Table></Worksheet>`;
+    return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${purchaseSheets || `<Worksheet ss:Name="History"><Table/></Worksheet>`}${aapiSheet}</Workbook>`;
   }
 
   function backupPdfBlob() {
     const clean = (value) => String(value).normalize("NFKD").replace(/[^\x20-\x7E]/g, "?").replace(/([\\()])/g, "\\$1");
-    const lines = ["Maqsood Karyana Store - Complete History", `Generated: ${new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi" })}`, `Total entries: ${state.entries.length}   Total: ${money(totals(state.entries).total)}`, "", ...state.entries.map((row) => `${savedDayTime(row)} | ${row.item_name} | ${money(row.total_amount)} | ${row.entered_by || "Purana record"}`)];
-    const wrapped = lines.flatMap((line) => { const text = clean(line); const parts = []; for (let i = 0; i < text.length; i += 92) parts.push(text.slice(i, i + 92)); return parts.length ? parts : [""]; });
+    const aapiTotals = personalKhataTotals();
+    const lines = ["Maqsood Karyana Store - Complete History", `Generated: ${new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi" })}`, `Purchase entries: ${state.entries.length}   Total: ${money(totals(state.entries).total)}`, `Aapi Khata: Aapi se liye ${money(aapiTotals.borrowed)} | Aapi ko wapas kiye ${money(aapiTotals.returned)} | Dene hain ${money(aapiTotals.borrowed - aapiTotals.returned)}`, "", "PURCHASE HISTORY", ...state.entries.map((row) => `${savedDayTime(row)} | ${row.item_name} | ${money(row.total_amount)} | ${row.entered_by || "Purana record"}`), "", "AAPI KHATA", ...state.personalKhata.map((row) => `${pakistanDateTime(row.entry_at)} | ${row.entry_type === "returned" ? "Aapi ko wapas kiye" : "Aapi se liye"} | ${money(row.amount)} | ${row.note || "-"}`)];    const wrapped = lines.flatMap((line) => { const text = clean(line); const parts = []; for (let i = 0; i < text.length; i += 92) parts.push(text.slice(i, i + 92)); return parts.length ? parts : [""]; });
     const pages = []; for (let i = 0; i < wrapped.length; i += 48) pages.push(wrapped.slice(i, i + 48));
     const objects = [null, "<< /Type /Catalog /Pages 2 0 R >>", ""];
     const fontId = 3 + pages.length * 2; const pageIds = [];
@@ -1106,7 +1109,7 @@
     updateEntryClock(); setInterval(updateEntryClock, 30000);
     updateBackupStatus(); runAutoBackup(); setInterval(() => runAutoBackup(), 60000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) runAutoBackup(); });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=21").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=22").catch(console.error);
     restoreSession();
   }
 
