@@ -178,7 +178,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-700); box-
 .personal-khata-form .form-actions { grid-column: span 2; }
 .personal-khata-history { padding: 0; overflow: hidden; }
 .personal-khata-history .panel-head { padding: 20px 20px 14px; margin: 0; border-bottom: 1px solid var(--line); }
-.khata-filters { display: flex; gap: 4px; padding: 4px; border-radius: 8px; background: var(--canvas); }
+.khata-filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 8px; background: var(--canvas); }
 .khata-filters button { min-height: 32px; padding: 5px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 800; }
 .khata-filters button.active { background: var(--green-700); color: white; box-shadow: 0 2px 7px rgba(23,107,69,.2); }
 .personal-khata-list { display: grid; }
