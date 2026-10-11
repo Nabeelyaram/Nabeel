@@ -1078,6 +1078,16 @@
     }
   }
 
+  async function runCloudBackup() {
+    if (!IS_ADMIN || !configured || !state.token) return false;
+    try {
+      const response = await fetch(`${config.supabaseUrl}/functions/v1/onedrive-backup`, { method: "POST", headers: { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}`, "Content-Type": "application/json", "X-Store-Session": state.token }, body: "{}" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || result.skipped || "Cloud backup unavailable");
+      localStorage.setItem(BACKUP_LAST_KEY, new Date().toISOString());
+      await updateBackupStatus(); toast("OneDrive cloud backup save ho gaya"); return true;
+    } catch (error) { console.error("Cloud backup failed", error); toast("Cloud backup nahi hua. OneDrive reconnect aur server setup check karein."); return false; }
+  }
   function scheduleAutoBackup() {
     if (!IS_ADMIN) return;
     localStorage.setItem(BACKUP_DUE_KEY, String(Date.now() + 3600000));
@@ -1088,6 +1098,7 @@
 
   async function runAutoBackup(force = false) {
     if (!IS_ADMIN) return;
+    if (force) await runCloudBackup();
     if (!state.dataLoaded) return;
     const due = Number(localStorage.getItem(BACKUP_DUE_KEY) || 0);
     if (!force && (!due || Date.now() < due)) { if (due) { clearTimeout(scheduleAutoBackup.timer); scheduleAutoBackup.timer = setTimeout(() => runAutoBackup(), Math.min(2147483647, due - Date.now())); } return updateBackupStatus(); }
@@ -1211,7 +1222,7 @@
     updateEntryClock(); setInterval(updateEntryClock, 30000);
     updateBackupStatus(); runAutoBackup(); setInterval(() => runAutoBackup(), 60000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) runAutoBackup(); });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=25").catch(console.error);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=26").catch(console.error);
     restoreSession();
   }
 
